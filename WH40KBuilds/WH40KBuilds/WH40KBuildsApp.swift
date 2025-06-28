@@ -15,12 +15,6 @@ struct WH40KBuildsApp: App {
     
     init() {
         FirebaseApp.configure()
-        
-        if FirebaseApp.app() != nil {
-            print("✅ Firebase configurado correctamente")
-        } else {
-            print("🚫 Error al configurar Firebase")
-        }
     }
     
     var sharedModelContainer: ModelContainer = {
