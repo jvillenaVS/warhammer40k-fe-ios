@@ -8,84 +8,104 @@
 import SwiftUI
 
 struct BuildFormView: View {
-    @StateObject var vm: BuildFormViewModel
+    @StateObject private var vm: BuildFormViewModel
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var session: SessionStore
     
+    // Focus management
+    @FocusState private var focusedField: Field?
+    enum Field {
+        case name, faction, subfaction, detachment, commandPoints, totalPoints
+    }
+    
+    // MARK: – Init
+    init(repository: BuildRepository = FirestoreBuildRepository(),
+         session: SessionStore) {
+        _vm = StateObject(wrappedValue: BuildFormViewModel(
+            repository: repository,
+            session: session
+        ))
+    }
+    
+    // MARK: – Body
     var body: some View {
         Form {
-            // MARK: ‑ Build Info
-            Section(header: Text("Build Info")) {
+            Section("Build Info") {
                 TextField("Name", text: $vm.name)
-                fieldError(.name)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($focusedField, equals: .name)
+                    .submitLabel(.next)
+                    .onSubmit { focusedField = .faction }
                 
                 TextField("Faction", text: $vm.faction)
-                fieldError(.faction)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($focusedField, equals: .faction)
+                    .submitLabel(.next)
+                    .onSubmit { focusedField = .subfaction }
                 
                 TextField("Subfaction", text: $vm.subfaction)
-                TextField("Detachment", text: $vm.detachmentType)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($focusedField, equals: .subfaction)
+                    .submitLabel(.next)
+                    .onSubmit { focusedField = .detachment }
+                
+                TextField("Detachment Type", text: $vm.detachmentType)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($focusedField, equals: .detachment)
+                    .submitLabel(.next)
+                    .onSubmit { focusedField = .commandPoints }
             }
             
-            // MARK: ‑ Points
-            Section(header: Text("Points")) {
+            Section("Points") {
                 TextField("Command Points", text: $vm.commandPoints)
                     .keyboardType(.numberPad)
-                fieldError(.commandPoints)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($focusedField, equals: .commandPoints)
+                    .submitLabel(.next)
+                    .onSubmit { focusedField = .totalPoints }
                 
                 TextField("Total Points", text: $vm.totalPoints)
                     .keyboardType(.numberPad)
-                fieldError(.totalPoints)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($focusedField, equals: .totalPoints)
+                    .submitLabel(.continue)
+                    .onSubmit { vm.saveBuild() }
             }
             
-            // MARK: ‑ Save Button
             Section {
-                Button(action: vm.saveBuild) {
-                    if vm.isSaving {
-                        ProgressView()
-                    } else {
-                        Text("Save Build")
-                    }
+                Button {
+                    vm.saveBuild()
+                } label: {
+                    if vm.isSaving { ProgressView() }
+                    else { Text("Save Build").frame(maxWidth: .infinity) }
                 }
+                .buttonStyle(.borderedProminent)
                 .disabled(!vm.formState.isValid || vm.isSaving)
             }
         }
         .navigationTitle("New Build")
-        .alert("Error", isPresented: Binding(
-            get: { vm.errorMessage != nil },
-            set: { _ in vm.errorMessage = nil })
-        ) {
-            Button("OK", role: .cancel) { }
-        } message: {
+        .contentShape(Rectangle())
+        .onTapGesture { hideKeyboard() }
+        .alert("Message",
+               isPresented: Binding(
+                   get: { vm.errorMessage != nil },
+                   set: { _ in vm.clearError() })
+        ) { Button("OK", role: .cancel) { } } message: {
             Text(vm.errorMessage ?? "")
         }
+        
         .onChange(of: vm.saveSuccess) { _, newValue in
             if newValue { dismiss() }
         }
     }
-    
-    // Helper that shows inline error message
-    @ViewBuilder
-    private func fieldError(_ field: BuildFormState.Field) -> some View {
-        if let msg = vm.formState.errors[field] {
-            Text(msg)
-                .font(.caption)
-                .foregroundStyle(.red)
-        }
-    }
 }
 
-// MARK: - Preview
-
+// MARK: – Preview
 #Preview {
-    NavigationStack {
-        BuildFormView(
-            vm: BuildFormViewModel(
-                repository: MockBuildRepository()
-            )
-        )
-    }
+    let session = SessionStore(service: MockAuthService())
+    BuildFormView(
+        repository: MockBuildRepository(),
+        session: session
+    )
+    .environmentObject(session)
 }
-
-
-
-
-    

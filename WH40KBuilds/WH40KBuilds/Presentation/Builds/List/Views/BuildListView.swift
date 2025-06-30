@@ -9,71 +9,117 @@ import SwiftUI
 
 struct BuildListView: View {
     
+    @EnvironmentObject private var session: SessionStore
     @StateObject private var vm: BuildListViewModel
+    private let repository: BuildRepository
     
-    // Inyección sencilla para previews / tests
-    init(repository: BuildRepository = FirestoreBuildRepository()) {
-        _vm = StateObject(wrappedValue: BuildListViewModel(repository: repository))
+    @State private var showForm = false
+    
+    init(repository: BuildRepository = FirestoreBuildRepository(),
+         session: SessionStore) {
+        self.repository = repository
+        _vm = StateObject(wrappedValue: BuildListViewModel(
+            repository: repository,
+            session: session
+        ))
     }
     
     var body: some View {
         NavigationStack {
-            Group {
-                if vm.isLoading {
-                    ProgressView("Loading Builds…")
-                } else if let error = vm.errorMessage {
-                    Text(error)
-                        .foregroundStyle(.red)
-                        .padding()
-                } else if vm.builds.isEmpty {
-                    ContentUnavailableView(
-                        "No builds yet",
-                        systemImage: "tray",
-                        description: Text("Tap the ➕ button to add a sample build")
-                    )
-                } else {
-                    List {
-                        ForEach(vm.builds) { build in
-                            NavigationLink {
-                                BuildDetailView(
-                                    viewModel: BuildDetailViewModel(
-                                        build: build,
-                                        repo: FirestoreBuildRepository()
-                                    )
-                                )
-                            } label: {
-                                VStack(alignment: .leading) {
-                                    Text(build.name).font(.headline)
-                                    Text(build.faction.name)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                        .onDelete(perform: vm.delete) // Swipe‑to‑delete
-                    }
-                    .listStyle(.plain)
+            content
+                .navigationTitle("WH40K Builds")
+                .toolbar {
+                    logoutButton
+                    addButton
                 }
+                .navigationDestination(isPresented: $showForm) {
+                    BuildFormView(
+                        repository: repository,
+                        session: session
+                    )
+                }
+        }
+    }
+    
+    @ViewBuilder
+    private var content: some View {
+        if vm.isLoading {
+            ProgressView("Loading Builds…")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if let error = vm.errorMessage {
+            VStack {
+                Text("Error loading builds:")
+                    .font(.headline)
+                Text(error)
+                    .multilineTextAlignment(.center)
             }
-            .navigationTitle("WH40K Builds")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+            .padding()
+        } else if vm.builds.isEmpty {
+            ContentUnavailableView(
+                session.isLoggedIn ? "No builds yet" : "Login required",
+                systemImage: "tray",
+                description: Text(
+                    session.isLoggedIn
+                    ? "Tap + to create your first build."
+                    : "Please log in to see or create builds.")
+            )
+        } else {
+            List {
+                ForEach($vm.builds) { $build in
                     NavigationLink {
-                        BuildFormView(
-                            vm: BuildFormViewModel(
-                                repository: FirestoreBuildRepository()
-                            )
+                        BuildDetailView(
+                            build: $build,
+                            repository: repository
                         )
                     } label: {
-                        Image(systemName: "plus")
+                        VStack(alignment: .leading) {
+                            Text(build.name)
+                                .font(.headline)
+                            Text(build.faction.name)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
+                .onDelete(perform: vm.delete)
             }
+            .listStyle(.plain)
+        }
+    }
+    
+    // MARK: – Botón "+"
+    @ToolbarContentBuilder
+    private var addButton: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Button {
+                showForm = true
+            } label: {
+                Image(systemName: "plus")
+            }
+            .disabled(!session.isLoggedIn)
+        }
+    }
+    
+    // MARK: – Botón Logout (muñequito)
+    @ToolbarContentBuilder
+    private var logoutButton: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarLeading) {
+            Button {
+                session.logout()
+            } label: {
+                Image(systemName: "person.crop.circle.badge.xmark")
+            }
+            .help("Logout")
         }
     }
 }
 
+// MARK: – Preview
 #Preview {
-    BuildListView(repository: MockBuildRepository()) // crea un mock para previews
+    let session = SessionStore(service: MockAuthService())
+    BuildListView(
+        repository: MockBuildRepository(),
+        session: session
+    )
+    .environmentObject(session)
 }
-

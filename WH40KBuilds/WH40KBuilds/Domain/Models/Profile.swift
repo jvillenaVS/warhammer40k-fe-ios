@@ -5,8 +5,6 @@
 //  Created by Jose Villena on 27/6/25.
 //
 
-import Foundation
-
 struct Profile: Codable {
     var range: String
     var type: String

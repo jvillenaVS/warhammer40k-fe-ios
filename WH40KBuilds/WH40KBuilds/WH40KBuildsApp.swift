@@ -8,31 +8,43 @@
 import SwiftUI
 import SwiftData
 import FirebaseCore
-
+import GoogleSignIn
 
 @main
 struct WH40KBuildsApp: App {
     
+    // Dependencias como constantes normales
+    private let authService: AuthService
+    private let repo: BuildRepository
+    private let sharedModelContainer: ModelContainer
+    private let session: SessionStore
+    
+    // MARK: – Init
     init() {
         FirebaseApp.configure()
+
+        if let clientID = FirebaseApp.app()?.options.clientID {
+            GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
+        } else {
+            print("❌ ERROR: Firebase clientID not found.")
+        }
+        
+        self.authService = FirebaseAuthService()
+        self.repo        = FirestoreBuildRepository()
+        self.session     = SessionStore(service: FirebaseAuthService())
+        
+        let schema = Schema([ Item.self ])
+        let config = ModelConfiguration(schema: schema,
+                                        isStoredInMemoryOnly: false)
+        self.sharedModelContainer = try! ModelContainer(for: schema,
+                                                        configurations: [config])
     }
     
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
-
+    // MARK: – UI
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView(repo: repo, authService: authService)
+                .environmentObject(session)
         }
         .modelContainer(sharedModelContainer)
     }

@@ -5,8 +5,6 @@
 //  Created by Jose Villena on 27/6/25.
 //
 
-import Foundation
-
 struct Stats: Codable {
     var M: String
     var WS: String

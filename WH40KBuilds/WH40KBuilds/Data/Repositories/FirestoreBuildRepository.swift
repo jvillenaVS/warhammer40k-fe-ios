@@ -7,11 +7,14 @@
 
 import Combine
 
+/// Adaptador Repository que delega en el DataSource y
+/// traduce cualquier mapeo de dominio si fuera necesario.
 final class FirestoreBuildRepository: BuildRepository {
+    
     private let dataSource = FirestoreBuildDataSource()
     
-    func fetchBuilds() -> AnyPublisher<[Build], Error> {
-        dataSource.readAll()
+    func fetchBuilds(for uid: String) -> AnyPublisher<[Build], Error> {
+        dataSource.listenToBuilds(for: uid)
     }
     
     func addBuild(_ build: Build) -> AnyPublisher<Void, Error> {

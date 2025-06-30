@@ -11,7 +11,7 @@ import Combine
 @MainActor
 final class BuildFormViewModel: ObservableObject {
     
-    // Input fields
+    // Form fields
     @Published var name = ""
     @Published var faction = ""
     @Published var subfaction = ""
@@ -19,22 +19,25 @@ final class BuildFormViewModel: ObservableObject {
     @Published var commandPoints = ""
     @Published var totalPoints = ""
     
-    // Output
-    @Published private(set) var formState = BuildFormState(isValid: false)
-    @Published var isSaving = false
-    @Published var saveSuccess = false
-    @Published var errorMessage: String?
+    // Validation + state
+    @Published private(set) var formState   = BuildFormState(isValid: false)
+    @Published private(set) var isSaving    = false
+    @Published private(set) var saveSuccess = false
+    @Published private(set) var errorMessage: String?
     
+    // Dependencies
     private let repo: BuildRepository
+    private let session: SessionStore        
     private let validator = ValidateBuildFormUseCase()
     private var cancellables = Set<AnyCancellable>()
     
-    init(repository: BuildRepository) {
+    init(repository: BuildRepository,
+         session: SessionStore) {
         self.repo = repository
+        self.session = session
         bindValidation()
     }
     
-    /// Observa cambios de los campos y valida
     private func bindValidation() {
         Publishers.CombineLatest4($name, $faction, $commandPoints, $totalPoints)
             .map { [validator] in
@@ -59,8 +62,10 @@ final class BuildFormViewModel: ObservableObject {
             totalPoints: tp,
             slots: .init(hq: 0, troops: 0, elite: 0,
                          fastAttack: 0, heavySupport: 0, flyers: 0),
-            units: [], stratagems: [],
-            notes: nil, createdBy: "local-user",
+            units: [],
+            stratagems: [],
+            notes: nil,
+            createdBy: session.uid ?? "unknown", 
             createdAt: Date()
         )
         
@@ -78,4 +83,7 @@ final class BuildFormViewModel: ObservableObject {
             } receiveValue: { }
             .store(in: &cancellables)
     }
+    
+    func clearError() { errorMessage = nil }
 }
+

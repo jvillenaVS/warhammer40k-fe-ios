@@ -9,23 +9,38 @@ import Foundation
 import Combine
 import FirebaseFirestore
 
+/// Encapsula la comunicación directa con Cloud Firestore.
 final class FirestoreBuildDataSource {
     
     private let db = Firestore.firestore()
     private let collection = "builds"
     
-    // MARK: - Create
-    func create(_ build: Build) -> AnyPublisher<Void, Error> {
-        Future { [weak self] promise in
-            guard let self else { return }
-            do {
-                _ = try db.collection(collection).addDocument(from: build) { error in
-                    if let error = error {
-                        promise(.failure(error))
-                    } else {
-                        promise(.success(()))
-                    }
+    // MARK: - Fetch (listener en vivo)
+    func listenToBuilds(for uid: String) -> AnyPublisher<[Build], Error> {
+        let subject = PassthroughSubject<[Build], Error>()
+        
+        db.collection(collection)
+            .whereField("createdBy", isEqualTo: uid)
+            .order(by: "createdAt", descending: true)
+            .addSnapshotListener { snapshot, error in
+                if let error { subject.send(completion: .failure(error)) }
+                else if let docs = snapshot?.documents {
+                    let builds = docs.compactMap { try? $0.data(as: Build.self) }
+                    subject.send(builds)
                 }
+            }
+        return subject.eraseToAnyPublisher()
+    }
+    
+    // MARK: - Add
+    func create(_ build: Build) -> AnyPublisher<Void, Error> {
+        Future { promise in
+            do {
+                _ = try self.db.collection(self.collection)
+                    .addDocument(from: build) { error in
+                        error == nil ? promise(.success(()))
+                                     : promise(.failure(error!))
+                    }
             } catch {
                 promise(.failure(error))
             }
@@ -33,43 +48,21 @@ final class FirestoreBuildDataSource {
         .eraseToAnyPublisher()
     }
     
-    // MARK: - Read all (live listener)
-    func readAll() -> AnyPublisher<[Build], Error> {
-        let subject = PassthroughSubject<[Build], Error>()
-        
-        db.collection(collection)
-            .order(by: "createdAt", descending: true)
-            .addSnapshotListener { snapshot, error in
-                if let error = error {
-                    subject.send(completion: .failure(error))
-                } else {
-                    let builds = snapshot?.documents.compactMap { doc in
-                        try? doc.data(as: Build.self)
-                    } ?? []
-                    subject.send(builds)
-                }
-            }
-        
-        return subject.eraseToAnyPublisher()
-    }
-    
-    // MARK: - Update (merge true)
+    // MARK: - Update
     func update(_ build: Build) -> AnyPublisher<Void, Error> {
-        guard let id = build.id else {
-            return Fail(error: NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing document ID"]))
-                .eraseToAnyPublisher()
-        }
-        
-        return Future { [weak self] promise in
+        Future { promise in
+            guard let id = build.id else {
+                promise(.failure(NSError(domain: "build",
+                                         code: -1,
+                                         userInfo: [NSLocalizedDescriptionKey: "Missing build ID"])))
+                return
+            }
             do {
-                try self?.db.collection(self?.collection ?? "")
+                try self.db.collection(self.collection)
                     .document(id)
                     .setData(from: build, merge: true) { error in
-                        if let error = error {
-                            promise(.failure(error))
-                        } else {
-                            promise(.success(()))
-                        }
+                        error == nil ? promise(.success(()))
+                                     : promise(.failure(error!))
                     }
             } catch {
                 promise(.failure(error))
@@ -80,18 +73,16 @@ final class FirestoreBuildDataSource {
     
     // MARK: - Delete
     func delete(id: String) -> AnyPublisher<Void, Error> {
-        Future { [weak self] promise in
-            self?.db.collection(self?.collection ?? "")
+        Future { promise in
+            self.db.collection(self.collection)
                 .document(id)
                 .delete { error in
-                    if let error = error {
-                        promise(.failure(error))
-                    } else {
-                        promise(.success(()))
-                    }
+                    error == nil ? promise(.success(()))
+                                 : promise(.failure(error!))
                 }
         }
         .eraseToAnyPublisher()
     }
 }
+
 

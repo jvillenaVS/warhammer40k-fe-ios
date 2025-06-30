@@ -5,8 +5,6 @@
 //  Created by Jose Villena on 27/6/25.
 //
 
-import Foundation
-
 struct Unit: Codable, Identifiable {
     var id: String         
     var name: String

@@ -8,54 +8,69 @@
 import Foundation
 import Combine
 
+import Foundation
+import Combine
+
 @MainActor
 final class BuildListViewModel: ObservableObject {
     
-    // MARK: - Published State
-    @Published private(set) var builds: [Build] = []
-    @Published var isLoading: Bool = false
-    @Published var errorMessage: String?
+    // MARK: - Published state
+    @Published var builds: [Build] = []
+    @Published private(set) var isLoading = false
+    @Published private(set) var errorMessage: String?
     
-    // MARK: - Dependencies
+    // MARK: - Deps
     private let repository: BuildRepository
+    private let session: SessionStore
+    
     private var cancellables = Set<AnyCancellable>()
+    private var firestoreCancellable: AnyCancellable?
     
     // MARK: - Init
-    init(repository: BuildRepository = FirestoreBuildRepository()) {
+    init(repository: BuildRepository, session: SessionStore) {
         self.repository = repository
-        fetchBuilds()
+        self.session    = session
+        bindSession()
     }
     
-    // MARK: - Public Intents
-    func fetchBuilds() {
-        isLoading = true
-        
-        repository.fetchBuilds()
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] completion in
-                if case .failure(let error) = completion {
-                    self?.errorMessage = error.localizedDescription
-                    self?.isLoading = false
+    // Escucha el cambio de uid
+    private func bindSession() {
+        session.$authState
+            .map { state -> String? in        
+                if case let .signedIn(user) = state { return user.uid }
+                return nil
+            }
+            .removeDuplicates()
+            .sink { [weak self] uid in
+                guard let self else { return }
+                
+                firestoreCancellable?.cancel()
+                builds = []
+                
+                if let uid {
+                    subscribeToBuilds(for: uid)
                 }
-            } receiveValue: { [weak self] builds in
-                self?.builds = builds
-                self?.isLoading = false
             }
             .store(in: &cancellables)
     }
     
-    func addSampleBuild() {
-        let sample = BuildFactory.sampleBuild()
-        repository.addBuild(sample)
+    // Listener Firestore → publisher Combine
+    private func subscribeToBuilds(for uid: String) {
+        isLoading = true
+        
+        firestoreCancellable = repository.fetchBuilds(for: uid)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] completion in
+                // Sólo manejamos errores aquí
                 if case .failure(let error) = completion {
                     self?.errorMessage = error.localizedDescription
                 }
-            } receiveValue: { }
-            .store(in: &cancellables)
+            } receiveValue: { [weak self] builds in
+                self?.isLoading = false
+                self?.builds = builds
+            }
     }
-    
+        
     func delete(at offsets: IndexSet) {
         offsets.forEach { index in
             guard let id = builds[index].id else { return }
@@ -65,5 +80,3 @@ final class BuildListViewModel: ObservableObject {
         }
     }
 }
-
-

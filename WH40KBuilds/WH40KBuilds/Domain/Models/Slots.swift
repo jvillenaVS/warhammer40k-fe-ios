@@ -5,8 +5,6 @@
 //  Created by Jose Villena on 27/6/25.
 //
 
-import Foundation
-
 struct Slots: Codable {
     var hq: Int
     var troops: Int

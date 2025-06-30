@@ -4,5 +4,18 @@
 <dict>
 <key>OPENAI_API_KEY</key>
 <string>$(OPENAI_API_KEY)</string>
+<key>UILaunchStoryboardName</key>
+<string>Launch Screen</string>
+<key>CFBundleURLTypes</key>
+<array>
+    <dict>
+        <key>CFBundleTypeRole</key>
+        <string>Editor</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+            <string>com.googleusercontent.apps.553567880388-fo6aoupijdp3upounfshkq14mo0hebnn</string>
+        </array>
+    </dict>
+</array>
 </dict>
 </plist>

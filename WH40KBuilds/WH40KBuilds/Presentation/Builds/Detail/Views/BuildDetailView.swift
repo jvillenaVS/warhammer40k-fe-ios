@@ -9,160 +9,95 @@ import SwiftUI
 
 struct BuildDetailView: View {
     
-    // MARK: - ViewModel
-    @StateObject var viewModel: BuildDetailViewModel
-    @Environment(\.dismiss) private var dismiss
+    // Binding: la vista madre (lista) pasa $build
+    @Binding var build: Build
     
-    // Notas editables localmente antes de presionar “Save Notes”
-    @State private var draftNotes: String = ""
+    // Dependencias
+    let repository: BuildRepository
+    @EnvironmentObject private var session: SessionStore
     
-    // MARK: - Body
+    // Navegación al editor
+    @State private var showEdit = false
+    
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 16) {
                 
-                // ===== Header =====
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(viewModel.build.name)
-                        .font(.largeTitle).bold()
-                    
-                    Text("\(viewModel.build.faction.name)\(viewModel.build.faction.subfaction.map { " - \($0)" } ?? "")")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                }
+                // Encabezado
+                Text(build.name)
+                    .font(.largeTitle).bold()
                 
-                HStack(spacing: 24) {
-                    StatCard(title: "CP", value: "\(viewModel.build.commandPoints)")
-                    StatCard(title: "Points", value: "\(viewModel.build.totalPoints)")
-                    StatCard(title: "Detachment", value: viewModel.build.detachmentType)
-                }
-                
-                Divider()
-                
-                // ===== Slots =====
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Slots").font(.headline)
-                    slotRows
-                }
-                
-                Divider()
-                
-                // ===== Units =====
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Units").font(.headline)
-                    
-                    ForEach(viewModel.build.units) { unit in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(unit.name).bold()
-                            Text("Type: \(unit.type)").font(.caption)
-                            Text("Cost: \(unit.unitTotalCost) pts")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(6)
-                        .background(RoundedRectangle(cornerRadius: 8)
-                                        .fill(.gray.opacity(0.1)))
+                // Faction / Detachment
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text("Faction:")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Text(build.faction.name)
+                    }
+                    Spacer()
+                    VStack(alignment: .leading) {
+                        Text("Detachment:")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Text(build.detachmentType)
                     }
                 }
                 
-                // ===== Stratagems =====
-                if !viewModel.build.stratagems.isEmpty {
+                // Puntos
+                HStack {
+                    statChip("CP", value: build.commandPoints)
+                    statChip("Pts", value: build.totalPoints)
+                }
+                
+                Divider()
+                
+                // Slots (solo resumen)
+                slotRow("HQ", build.slots.hq)
+                slotRow("Troops", build.slots.troops)
+                slotRow("Elite", build.slots.elite)
+                slotRow("Fast Attack", build.slots.fastAttack)
+                slotRow("Heavy", build.slots.heavySupport)
+                slotRow("Flyers", build.slots.flyers)
+                
+                // Notas
+                if let notes = build.notes, !notes.isEmpty {
                     Divider()
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Stratagems").font(.headline)
-                        ForEach(viewModel.build.stratagems) { stratagem in
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(stratagem.name).bold()
-                                Text("Cost: \(stratagem.costCP) CP")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text(stratagem.description)
-                            }
-                            .padding(6)
-                            .background(RoundedRectangle(cornerRadius: 8)
-                                            .fill(.gray.opacity(0.08)))
-                        }
-                    }
-                }
-                
-                // ===== Notes =====
-                Divider()
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Notes").font(.headline)
-                    TextEditor(text: $draftNotes)
-                        .frame(height: 120)
-                        .overlay(RoundedRectangle(cornerRadius: 8)
-                                    .stroke(.gray.opacity(0.3)))
-                    
-                    Button("Save Notes") {
-                        viewModel.build.notes = draftNotes
-                        viewModel.saveChanges()
-                    }
-                    .buttonStyle(.borderedProminent)
+                    Text("Notes")
+                        .font(.headline)
+                    Text(notes)
                 }
             }
             .padding()
         }
         .navigationTitle("Build Detail")
-        .onAppear { draftNotes = viewModel.build.notes ?? "" }
-        .alert("Error", isPresented: $viewModel.showingError) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(viewModel.errorMessage ?? "Unknown error")
-        }
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                NavigationLink {
-                    BuildEditView(
-                        vm: BuildEditViewModel(
-                            build: viewModel.build,
-                            repo: FirestoreBuildRepository()
-                        )
-                    )
-                } label: {
-                    Image(systemName: "pencil")
-                }
-            }
+            // Botón Edit
+            Button("Edit") { showEdit = true }
+        }
+        // Push a pantalla completa
+        .navigationDestination(isPresented: $showEdit) {
+            BuildEditView(
+                build: $build,
+                repository: repository,
+                session: session
+            )
         }
     }
     
-    // MARK: - Components
-    
-    private var slotRows: some View {
-        Group {
-            SlotRow(label: "HQ",          value: viewModel.build.slots.hq)
-            SlotRow(label: "Troops",      value: viewModel.build.slots.troops)
-            SlotRow(label: "Elite",       value: viewModel.build.slots.elite)
-            SlotRow(label: "Fast Attack", value: viewModel.build.slots.fastAttack)
-            SlotRow(label: "Heavy",       value: viewModel.build.slots.heavySupport)
-            SlotRow(label: "Flyers",      value: viewModel.build.slots.flyers)
-        }
-    }
-}
-
-// MARK: - Helper Views
-
-private struct StatCard: View {
-    let title: String
-    let value: String
-    var body: some View {
+    // MARK: - Helper views
+    private func statChip(_ label: String, value: Int) -> some View {
         VStack {
-            Text(value).font(.title2).bold()
-            Text(title).font(.caption)
+            Text("\(value)")
+                .font(.title2).bold()
+            Text(label).font(.caption)
         }
-        .frame(maxWidth: .infinity)
         .padding(8)
-        .background(.blue.opacity(0.1))
+        .background(.thinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
-}
-
-private struct SlotRow: View {
-    let label: String
-    let value: Int
-    var body: some View {
+    
+    private func slotRow(_ label: String, _ value: Int) -> some View {
         HStack {
-            Text(label).frame(width: 110, alignment: .leading)
+            Text(label)
             Spacer()
             Text("\(value)")
         }
@@ -171,27 +106,25 @@ private struct SlotRow: View {
 
 // MARK: - Preview
 #Preview {
-    let mockBuild = Build(
-        id: "1",
-        name: "Preview Build",
-        faction: .init(name: "Space Wolves", subfaction: "Fifth Company"),
-        detachmentType: "Patrol",
-        commandPoints: 3,
-        totalPoints: 1000,
-        slots: .init(hq: 1, troops: 2, elite: 1, fastAttack: 0, heavySupport: 0, flyers: 0),
-        units: [],
-        stratagems: [],
-        notes: "Preview notes",
-        createdBy: "Preview",
-        createdAt: .now
-    )
-    return NavigationStack {
+    let session = SessionStore(service: MockAuthService())
+    NavigationStack {
         BuildDetailView(
-            viewModel: BuildDetailViewModel(
-                build: mockBuild,
-                repo: MockBuildRepository()
-            )
+            build: .constant(
+                Build(id: "1",
+                      name: "Sample",
+                      faction: .init(name: "Ultramarines", subfaction: nil),
+                      detachmentType: "Battalion",
+                      commandPoints: 6,
+                      totalPoints: 2000,
+                      slots: .init(hq: 2, troops: 3, elite: 2,
+                                   fastAttack: 1, heavySupport: 2, flyers: 0),
+                      units: [], stratagems: [],
+                      notes: "Preview notes",
+                      createdBy: "uid", createdAt: .now)
+            ),
+            repository: MockBuildRepository()
         )
     }
+    .environmentObject(session)
 }
 

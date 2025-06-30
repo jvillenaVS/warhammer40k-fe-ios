@@ -9,9 +9,10 @@ import Foundation
 import Combine
 
 final class MockBuildRepository: BuildRepository {
+  
+    var builds: [Build] = []
     
-    // Datos de ejemplo
-    private let sampleBuilds: [Build] = [
+    private let addSampleBuilds: [Build] = [
         Build(
             id: "PREVIEW‑1",
             name: "Ultramarines Alpha",
@@ -25,26 +26,17 @@ final class MockBuildRepository: BuildRepository {
             notes: "Preview Build A",
             createdBy: "PreviewUser",
             createdAt: Date()
-        ),
-        Build(
-            id: "PREVIEW‑2",
-            name: "Iron Hands Siege",
-            faction: .init(name: "Iron Hands", subfaction: nil),
-            detachmentType: "Patrol",
-            commandPoints: 3,
-            totalPoints: 1000,
-            slots: .init(hq: 1, troops: 2, elite: 1, fastAttack: 0, heavySupport: 1, flyers: 0),
-            units: [],
-            stratagems: [],
-            notes: nil,
-            createdBy: "PreviewUser",
-            createdAt: Date()
         )
     ]
     
-    // MARK: - BuildRepository conformance
-    func fetchBuilds() -> AnyPublisher<[Build], Error> {
-        Just(sampleBuilds)
+    func addMockBuild() {
+        if let sample = addSampleBuilds.first {
+            builds.append(sample)
+        }
+    }
+    
+    func fetchBuilds(for uid: String) -> AnyPublisher<[Build], any Error> {
+        Just(addSampleBuilds)
             .setFailureType(to: Error.self)
             .eraseToAnyPublisher()
     }
@@ -66,4 +58,5 @@ final class MockBuildRepository: BuildRepository {
             .setFailureType(to: Error.self)
             .eraseToAnyPublisher()
     }
+    
 }
