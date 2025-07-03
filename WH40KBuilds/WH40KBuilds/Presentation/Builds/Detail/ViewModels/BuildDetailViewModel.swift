@@ -13,6 +13,7 @@ final class BuildDetailViewModel: ObservableObject {
     @Published var build: Build
     @Published var errorMessage: String?
     @Published var showingError: Bool = false
+    @Published var pdfURL: URL?
     
     private let repo: BuildRepository
     private var cancellables = Set<AnyCancellable>()
@@ -32,6 +33,20 @@ final class BuildDetailViewModel: ObservableObject {
                 }
             } receiveValue: { }
             .store(in: &cancellables)
+    }
+    
+    func exportPDF() {
+        Task {
+            do {
+                let url = try await ExportBuildToPDF(
+                    exporter: SwiftUIPDFExporter()
+                ).execute(build: build)
+                pdfURL = url             
+            } catch {
+                errorMessage = error.localizedDescription
+                showingError = true
+            }
+        }
     }
 }
 

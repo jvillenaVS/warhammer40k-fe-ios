@@ -11,47 +11,82 @@ import Combine
 @MainActor
 final class BuildFormViewModel: ObservableObject {
     
-    // Form fields
-    @Published var name = ""
-    @Published var faction = ""
-    @Published var subfaction = ""
+    // MARK: – Published fields
+    @Published var name           = ""
+    @Published var faction        = ""
+    @Published var subfaction     = ""
     @Published var detachmentType = ""
-    @Published var commandPoints = ""
-    @Published var totalPoints = ""
+    @Published var commandPoints  = ""
+    @Published var totalPoints    = ""
     
-    // Validation + state
+    // Slots
+    @Published var hq       = ""
+    @Published var troops   = ""
+    @Published var elite    = ""
+    @Published var fast     = ""
+    @Published var heavy    = ""
+    @Published var flyers   = ""
+    
+    // MARK: – State
     @Published private(set) var formState   = BuildFormState(isValid: false)
     @Published private(set) var isSaving    = false
     @Published private(set) var saveSuccess = false
     @Published private(set) var errorMessage: String?
     
-    // Dependencies
+    // MARK: – Deps
     private let repo: BuildRepository
-    private let session: SessionStore        
-    private let validator = ValidateBuildFormUseCase()
+    private let session: SessionStore
+    private let validator = ValidateBuildForm()
     private var cancellables = Set<AnyCancellable>()
     
-    init(repository: BuildRepository,
-         session: SessionStore) {
-        self.repo = repository
-        self.session = session
+    init(repository: BuildRepository, session: SessionStore) {
+        self.repo     = repository
+        self.session  = session
         bindValidation()
     }
     
+    // MARK: – Combine validation
     private func bindValidation() {
-        Publishers.CombineLatest4($name, $faction, $commandPoints, $totalPoints)
-            .map { [validator] in
-                validator.validate(name: $0, faction: $1,
-                                   commandPoints: $2, totalPoints: $3)
+        // 3 grupos de CombineLatest3  →   ((A,B,C),(D,E,F),(G,H,I))
+        let group1 = Publishers.CombineLatest3($name, $faction, $subfaction)
+        let group2 = Publishers.CombineLatest3($detachmentType, $commandPoints, $totalPoints)
+        let group3 = Publishers.CombineLatest3($hq, $troops, $elite)        // primeros 3 slots
+        let group4 = Publishers.CombineLatest3($fast, $heavy, $flyers)      // otros 3
+        
+        Publishers.CombineLatest4(group1, group2, group3, group4)
+            .map { [validator] g1, g2, g3, g4 -> BuildFormState in
+                let (n,f,s)           = g1
+                let (det,cp,tp)       = g2
+                let (hq,troops,elite) = g3
+                let (fast,heavy,fly)  = g4
+                
+                let values = FormValues(
+                    name: n, faction: f, subfaction: s,
+                    detachment: det,
+                    cp: cp, points: tp,
+                    slots: [
+                        (.hq, hq), (.troops, troops), (.elite, elite),
+                        (.fast, fast), (.heavy, heavy), (.flyers, fly)
+                    ]
+                )
+                return validator.validate(values: values)
             }
+            .receive(on: DispatchQueue.main)
             .assign(to: &$formState)
     }
     
-    // MARK: - Save
+    // MARK: – Public save
     func saveBuild() {
+        // Valida con el último estado
         guard formState.isValid,
-              let cp = Int(commandPoints),
-              let tp = Int(totalPoints) else { return }
+              let cp  = Int(commandPoints),
+              let pts = Int(totalPoints),
+              let hqI = Int(hq), let trI = Int(troops), let elI = Int(elite),
+              let faI = Int(fast), let heI = Int(heavy), let flI = Int(flyers)
+        else {
+            errorMessage = "Please complete all fields correctly."
+            return
+        }
         
         let build = Build(
             id: nil,
@@ -59,24 +94,23 @@ final class BuildFormViewModel: ObservableObject {
             faction: .init(name: faction, subfaction: subfaction),
             detachmentType: detachmentType,
             commandPoints: cp,
-            totalPoints: tp,
-            slots: .init(hq: 0, troops: 0, elite: 0,
-                         fastAttack: 0, heavySupport: 0, flyers: 0),
+            totalPoints: pts,
+            slots: .init(hq: hqI, troops: trI, elite: elI,
+                         fastAttack: faI, heavySupport: heI, flyers: flI),
             units: [],
             stratagems: [],
             notes: nil,
-            createdBy: session.uid ?? "unknown", 
+            createdBy: session.uid ?? "unknown",
             createdAt: Date()
         )
         
         isSaving = true
-        
         repo.addBuild(build)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] completion in
                 self?.isSaving = false
-                if case .failure(let error) = completion {
-                    self?.errorMessage = error.localizedDescription
+                if case .failure(let err) = completion {
+                    self?.errorMessage = err.localizedDescription
                 } else {
                     self?.saveSuccess = true
                 }
@@ -87,3 +121,10 @@ final class BuildFormViewModel: ObservableObject {
     func clearError() { errorMessage = nil }
 }
 
+// MARK: – Helper struct for validator
+struct FormValues {
+    let name, faction, subfaction, detachment: String
+    let cp, points: String
+    /// Tupla (campo, valor)
+    let slots: [(BuildFormState.Field, String)]
+}

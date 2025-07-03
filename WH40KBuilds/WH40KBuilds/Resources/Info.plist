@@ -14,9 +14,14 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>com.googleusercontent.apps.553567880388-fo6aoupijdp3upounfshkq14mo0hebnn</string>
+                <string>instagram-stories</string>
 			</array>
 		</dict>
 	</array>
+    <key>LSApplicationQueriesSchemes</key>
+       <array>
+           <string>instagram-stories</string>
+       </array>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Inter-Bold.ttf</string>

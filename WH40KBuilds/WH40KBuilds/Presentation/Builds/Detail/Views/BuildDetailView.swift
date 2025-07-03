@@ -6,125 +6,204 @@
 //
 
 import SwiftUI
+import PDFKit
 
 struct BuildDetailView: View {
-    
-    // Binding: la vista madre (lista) pasa $build
+    // MARK: - Bindings & Dependencies
     @Binding var build: Build
-    
-    // Dependencias
     let repository: BuildRepository
     @EnvironmentObject private var session: SessionStore
     
-    // Navegación al editor
-    @State private var showEdit = false
+    // MARK: - Navigation & Share
+    @State private var showEdit   = false
+    @State private var pdfURL: URL?
+    @State private var showShare  = false
+    @State private var exportError: String?
     
+    // MARK: - Body
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                
-                // Encabezado
-                Text(build.name)
-                    .font(.largeTitle).bold()
-                
-                // Faction / Detachment
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text("Faction:")
-                            .font(.caption).foregroundStyle(.secondary)
-                        Text(build.faction.name)
-                    }
-                    Spacer()
-                    VStack(alignment: .leading) {
-                        Text("Detachment:")
-                            .font(.caption).foregroundStyle(.secondary)
-                        Text(build.detachmentType)
-                    }
-                }
-                
-                // Puntos
-                HStack {
-                    statChip("CP", value: build.commandPoints)
-                    statChip("Pts", value: build.totalPoints)
-                }
-                
-                Divider()
-                
-                // Slots (solo resumen)
-                slotRow("HQ", build.slots.hq)
-                slotRow("Troops", build.slots.troops)
-                slotRow("Elite", build.slots.elite)
-                slotRow("Fast Attack", build.slots.fastAttack)
-                slotRow("Heavy", build.slots.heavySupport)
-                slotRow("Flyers", build.slots.flyers)
-                
-                // Notas
+            VStack(spacing: 24) {
+                headerCard
+                factionSection
+                slotsCard
                 if let notes = build.notes, !notes.isEmpty {
-                    Divider()
-                    Text("Notes")
-                        .font(.headline)
-                    Text(notes)
+                    notesCard(text: notes)
                 }
             }
-            .padding()
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
         }
         .navigationTitle("Build Detail")
-        .toolbar {
-            // Botón Edit
-            Button("Edit") { showEdit = true }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { topToolbar }
+        .navigationDestination(isPresented: $showEdit) { buildEdit }
+        .sheet(isPresented: $showShare) { shareSheet }
+        .alert("Export error",
+               isPresented: Binding(get: { exportError != nil },
+                                    set: { _ in exportError = nil })) {
+            Button("OK", role: .cancel) { }
+        } message: { Text(exportError ?? "") }
+        .background(Color.appBg)
+    }
+}
+
+// MARK: - UI Components
+private extension BuildDetailView {
+    
+    // ───────── Header ─────────
+    var headerCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(build.name)
+                .font(.inter(.bold, 34))
+                .lineLimit(2)
+            
+            HStack(spacing: 12) {
+                statChip("CP", build.commandPoints, color: .mint)
+                statChip("Pts", build.totalPoints, color: .cyan)
+            }
         }
-        // Push a pantalla completa
-        .navigationDestination(isPresented: $showEdit) {
-            BuildEditView(
-                build: $build,
-                repository: repository,
-                session: session
-            )
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(radius: 4, y: 2)
+    }
+    
+    // ───────── Faction / Sub‑Faction / Detachment ─────────
+    var factionSection: some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 16) {
+                infoCard(title: "Faction",
+                         value: build.faction.name,
+                         icon: validSymbol("lag.fill"))
+                
+                infoCard(title: "Detachment",
+                         value: build.detachmentType,
+                         icon: validSymbol("puzzlepiece.fill"))
+            }
+            
+            if let sub = build.faction.subfaction,
+               !sub.trimmingCharacters(in: .whitespaces).isEmpty {
+                infoCard(title: "Sub‑Faction",
+                         value: sub,
+                         icon: validSymbol("shield.lefthalf.fill"))
+            }
         }
     }
     
-    // MARK: - Helper views
-    private func statChip(_ label: String, value: Int) -> some View {
-        VStack {
-            Text("\(value)")
-                .font(.title2).bold()
-            Text(label).font(.caption)
+    // ───────── Slots card ─────────
+    var slotsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Force Slots").font(.headline)
+            ForEach(slotTuples, id: \.0) { label, count, icon in
+                HStack {
+                    Label(label, systemImage: icon)
+                    Spacer()
+                    Text("\(count)").bold()
+                }
+                .font(.inter(.regular, 16))
+            }
         }
-        .padding(8)
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(uiColor: .secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+    
+    // ───────── Notes card ─────────
+    func notesCard(text: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Notes").font(.headline)
+            Text(text).font(.inter(.light, 15))
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
     
-    private func slotRow(_ label: String, _ value: Int) -> some View {
-        HStack {
-            Text(label)
-            Spacer()
-            Text("\(value)")
+    // ───────── Helper: info card ─────────
+    func infoCard(title: String, value: String, icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label(title, systemImage: icon)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(value).font(.inter(.medium, 16))
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(uiColor: .secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+    
+    // ───────── Helper: stat chip ─────────
+    func statChip(_ label: String, _ value: Int, color: Color) -> some View {
+        VStack(spacing: 4) {
+            Text("\(value)").font(.title3).bold()
+            Text(label).font(.caption2)
+        }
+        .padding(10)
+        .frame(width: 80)
+        .background(color.opacity(0.15))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+    
+    func validSymbol(_ primary: String, fallback: String = "flag.fill") -> String {
+        UIImage(systemName: primary) == nil ? fallback : primary
+    }
+    
+}
+
+// MARK: - Slots meta‑data
+private extension BuildDetailView {
+    var slotTuples: [(String, Int, String)] {
+        [
+            ("HQ",          build.slots.hq,           "person.2.square.stack"),
+            ("Troops",      build.slots.troops,       "person.3.fill"),
+            ("Elite",       build.slots.elite,        "staroflife.circle"),
+            ("Fast Attack", build.slots.fastAttack,   "bolt.fill"),
+            ("Heavy",       build.slots.heavySupport, "shield.lefthalf.filled"),
+            ("Flyers",      build.slots.flyers,       "airplane")
+        ]
+    }
+}
+
+// MARK: - Toolbar & Navigation
+private extension BuildDetailView {
+    var topToolbar: some ToolbarContent {
+        ToolbarItemGroup(placement: .navigationBarTrailing) {
+            Button { showEdit = true }  label: { Image(systemName: "pencil") }
+            Button { Task { await exportPDF() } } label: { Image(systemName: "square.and.arrow.up") }
+        }
+    }
+    
+    var buildEdit: some View {
+        BuildEditView(build: $build,
+                      repository: repository,
+                      session: session)
+    }
+    
+    @ViewBuilder
+    var shareSheet: some View {
+        if let url = pdfURL {
+            SharePDFView(url: url)
+        } else {
+            EmptyView()
         }
     }
 }
 
-// MARK: - Preview
-#Preview {
-    let session = SessionStore(service: MockAuthService())
-    NavigationStack {
-        BuildDetailView(
-            build: .constant(
-                Build(id: "1",
-                      name: "Sample",
-                      faction: .init(name: "Ultramarines", subfaction: nil),
-                      detachmentType: "Battalion",
-                      commandPoints: 6,
-                      totalPoints: 2000,
-                      slots: .init(hq: 2, troops: 3, elite: 2,
-                                   fastAttack: 1, heavySupport: 2, flyers: 0),
-                      units: [], stratagems: [],
-                      notes: "Preview notes",
-                      createdBy: "uid", createdAt: .now)
-            ),
-            repository: MockBuildRepository()
-        )
+// MARK: - Export to PDF
+private extension BuildDetailView {
+    @MainActor
+    func exportPDF() async {
+        do {
+            let url = try await SwiftUIPDFExporter().export(build: build)
+            pdfURL = url
+            showShare = true
+        } catch {
+            exportError = error.localizedDescription
+        }
     }
-    .environmentObject(session)
 }
-

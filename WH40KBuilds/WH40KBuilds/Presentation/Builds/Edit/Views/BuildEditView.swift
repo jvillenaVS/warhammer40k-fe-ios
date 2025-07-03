@@ -9,20 +9,17 @@ import SwiftUI
 
 struct BuildEditView: View {
     
-    // Binding al objeto de origen
     @Binding var build: Build
-    
-    // ViewModel
     @StateObject private var vm: BuildEditViewModel
     @Environment(\.dismiss) private var dismiss
     
-    // Focus control
-    @FocusState private var focused: Field?
-    enum Field {
-        case name, faction, subfaction, detachment, cp, tp
+    @FocusState private var focus: Field?
+    enum Field: Hashable {
+        case name, faction, subfaction, detachment
+        case cp, points
+        case hq, troops, elite, fast, heavy, flyers
     }
     
-    // MARK: - Init
     init(build: Binding<Build>,
          repository: BuildRepository,
          session: SessionStore) {
@@ -34,65 +31,63 @@ struct BuildEditView: View {
         )
     }
     
-    // MARK: - Body
     var body: some View {
         Form {
-            Section("Build Info") {
-                TextField("Name", text: $vm.name)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($focused, equals: .name)
-                    .submitLabel(.next)
-                    .onSubmit { focused = .faction }
-                
-                TextField("Faction", text: $vm.faction)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($focused, equals: .faction)
-                    .submitLabel(.next)
-                    .onSubmit { focused = .subfaction }
-                
-                TextField("Subfaction", text: $vm.subfaction)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($focused, equals: .subfaction)
-                    .submitLabel(.next)
-                    .onSubmit { focused = .detachment }
-                
-                TextField("Detachment", text: $vm.detachmentType)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($focused, equals: .detachment)
-                    .submitLabel(.next)
-                    .onSubmit { focused = .cp }
+            // ───────── Build Info ─────────
+            Section {
+                field("Name",        text: $vm.name,           tag: .name,       next: .faction)
+                field("Faction",     text: $vm.faction,        tag: .faction,    next: .subfaction)
+                field("Sub‑Faction", text: $vm.subfaction,     tag: .subfaction, next: .detachment)
+                field("Detachment",  text: $vm.detachmentType, tag: .detachment, next: .cp)
+            } header: {
+                Text("Build Info")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .textCase(nil)
             }
             
-            Section("Points") {
-                TextField("Command Points", text: $vm.commandPoints)
-                    .keyboardType(.numberPad)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($focused, equals: .cp)
-                    .submitLabel(.next)
-                    .onSubmit { focused = .tp }
-                
-                TextField("Total Points", text: $vm.totalPoints)
-                    .keyboardType(.numberPad)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($focused, equals: .tp)
-                    .submitLabel(.continue)
-                    .onSubmit { vm.save() }
-            }
+            // ───────── Points ─────────
             Section {
-                Button {
-                    vm.save()
-                } label: {
+                numField("Command Points", text: $vm.commandPoints, tag: .cp,     next: .points)
+                numField("Total Points",   text: $vm.totalPoints,   tag: .points, next: .hq)
+            } header: {
+                Text("Points")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .textCase(nil)
+            }
+            
+            // ───────── Slots ─────────
+            Section {
+                numField("HQ",          text: $vm.hq,     tag: .hq,     next: .troops)
+                numField("Troops",      text: $vm.troops, tag: .troops, next: .elite)
+                numField("Elite",       text: $vm.elite,  tag: .elite,  next: .fast)
+                numField("Fast Attack", text: $vm.fast,   tag: .fast,   next: .heavy)
+                numField("Heavy Supp.", text: $vm.heavy,  tag: .heavy,  next: .flyers)
+                numField("Flyers",      text: $vm.flyers, tag: .flyers, next: nil)
+            } header: {
+                Text("Slots")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .textCase(nil)
+            }
+            
+            // ───────── Save ─────────
+            Section {
+                Button(action: edit) {
                     if vm.isSaving { ProgressView() }
-                    else { Text("Save").frame(maxWidth: .infinity) }
+                    else { Text("Save Changes").frame(maxWidth: .infinity) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!vm.formState.isValid || vm.isSaving)
             }
-            
         }
         .navigationTitle("Edit Build")
-        .contentShape(Rectangle())
-        .onTapGesture { hideKeyboard() }   // Oculta teclado
+        .onTapGesture { hideKeyboard()}
+        .scrollContentBackground(.hidden)
+        .background(Color.appBg)
+        
+        // Alert
         .alert("Error",
                isPresented: Binding(
                    get: { vm.errorMessage != nil },
@@ -100,12 +95,39 @@ struct BuildEditView: View {
         ) { Button("OK", role: .cancel) { } } message: {
             Text(vm.errorMessage ?? "")
         }
-        // Actualiza binding y cierra
-        .onChange(of: vm.saveSuccess) { _, newValue in
-            if newValue, let edited = vm.updatedBuild {
+        // Cierra y actualiza binding
+        .onChange(of: vm.saveSuccess) { _, new in
+            if new, let edited = vm.updatedBuild {
                 build = edited
                 dismiss()
             }
         }
+    }
+    
+    // MARK: – Helpers
+    private func field(_ title: LocalizedStringKey,
+                       text: Binding<String>,
+                       tag: Field, next: Field?) -> some View {
+        TextField(title, text: text)
+            .textFieldStyle(.roundedBorder)
+            .focused($focus, equals: tag)
+            .submitLabel(next == nil ? .done : .next)
+            .onSubmit { focus = next }
+    }
+    
+    private func numField(_ title: LocalizedStringKey,
+                          text: Binding<String>,
+                          tag: Field, next: Field?) -> some View {
+        TextField(title, text: text)
+            .keyboardType(.numberPad)
+            .textFieldStyle(.roundedBorder)
+            .focused($focus, equals: tag)
+            .submitLabel(next == nil ? .done : .next)
+            .onSubmit { focus = next }
+    }
+    
+    private func edit() {
+        hideKeyboard()
+        vm.editBuild()
     }
 }

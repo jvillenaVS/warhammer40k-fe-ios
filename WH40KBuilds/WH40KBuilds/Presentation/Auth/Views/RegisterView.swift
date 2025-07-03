@@ -61,8 +61,8 @@ struct RegisterView: View {
                     SecureField("Confirm Password", text: $confirmPass)
                         .textFieldStyle(.roundedBorder)
                         .focused($focusedField, equals: .confirm)
-                        .submitLabel(.continue)     // 👉 Continue
-                        .onSubmit { callRegister() } // 👉 llama register
+                        .submitLabel(.continue)
+                        .onSubmit { callRegister() }
                 }
                 
                 // Register button

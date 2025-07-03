@@ -18,7 +18,7 @@ struct RootView: View {
         ZStack {
             switch session.authState {
             case .signedIn:
-                BuildListView(repository: repo, session: session)
+                MainMenuView(repo: repo, authService: authService)
             case .signedOut:
                 LoginView(authService: authService)
             case .loading:
