@@ -28,7 +28,7 @@ struct BuildPDFView: View {
         VStack(alignment: .leading, spacing: 24) {
             
             HStack {
-                Image("app-logo")
+                Image("wh-logo")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 60, height: 60)

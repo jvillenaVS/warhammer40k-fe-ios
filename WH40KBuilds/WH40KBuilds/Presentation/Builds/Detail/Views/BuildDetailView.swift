@@ -57,15 +57,16 @@ private extension BuildDetailView {
             Text(build.name)
                 .font(.inter(.bold, 34))
                 .lineLimit(2)
+                .foregroundStyle(.white.opacity(0.9))
             
             HStack(spacing: 12) {
-                statChip("CP", build.commandPoints, color: .mint)
-                statChip("Pts", build.totalPoints, color: .cyan)
+                statChip("CP", build.commandPoints, color: .buildTitle)
+                statChip("Pts", build.totalPoints, color: .buildTint)
             }
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white)
+        .background(.buildForm)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(radius: 4, y: 2)
     }
@@ -96,18 +97,23 @@ private extension BuildDetailView {
     var slotsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Force Slots").font(.headline)
+                .foregroundColor(.white.opacity(0.8))
             ForEach(slotTuples, id: \.0) { label, count, icon in
                 HStack {
                     Label(label, systemImage: icon)
+                        .foregroundColor(.white.opacity(0.8))
+                        .tint(.white.opacity(0.8))
                     Spacer()
                     Text("\(count)").bold()
+                        .foregroundColor(.white)
+                    
                 }
                 .font(.inter(.regular, 16))
             }
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(uiColor: .secondarySystemBackground))
+        .background(.buildForm)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
     
@@ -128,12 +134,13 @@ private extension BuildDetailView {
         VStack(alignment: .leading, spacing: 4) {
             Label(title, systemImage: icon)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white)
             Text(value).font(.inter(.medium, 16))
+                .foregroundColor(.white)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(uiColor: .secondarySystemBackground))
+        .background(.buildForm)
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
     
@@ -141,11 +148,13 @@ private extension BuildDetailView {
     func statChip(_ label: String, _ value: Int, color: Color) -> some View {
         VStack(spacing: 4) {
             Text("\(value)").font(.title3).bold()
+                .foregroundColor(.white)
             Text(label).font(.caption2)
+                .foregroundColor(.white.opacity(0.8))
         }
         .padding(10)
         .frame(width: 80)
-        .background(color.opacity(0.15))
+        .background(color.opacity(0.45))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
     

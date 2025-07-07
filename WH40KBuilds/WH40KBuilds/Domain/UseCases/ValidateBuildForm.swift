@@ -17,41 +17,63 @@ struct BuildFormState {
     }
 }
 
-/// Reglas
+/// Revisa reglas de negocio del formulario y devuelve `BuildFormState`
 struct ValidateBuildForm {
-    func validate(values: FormValues) -> BuildFormState {
-        var err: [BuildFormState.Field: String] = [:]
+    
+    /// Valida todos los campos del formulario
+    /// - Parameters:
+    ///   - values: struct con los valores escritos por el usuario
+    ///   - detachment: límites de slots (opcional: nil si aún no eligió)
+    func validate(values v: FormValues,
+                  detachment: DetachmentCodex?) -> BuildFormState {
         
-        // Build Info
-        if values.name.trimmingCharacters(in: .whitespaces).count < 3 {
-            err[.name] = "Min. 3 characters"
+        var errors: [BuildFormState.Field : String] = [:]
+        
+        // ── 1. Reglas básicas de texto ───────────────────────────
+        if v.name.trimmingCharacters(in: .whitespaces).count < 3 {
+            errors[.name] = "≥ 3 chars"
         }
-        if values.faction.trimmingCharacters(in: .whitespaces).count < 3 {
-            err[.faction] = "Min. 3 characters"
-        }
-        if values.subfaction.trimmingCharacters(in: .whitespaces).isEmpty {
-            err[.subfaction] = "Required"
-        }
-        if values.detachment.trimmingCharacters(in: .whitespaces).isEmpty {
-            err[.detachment] = "Required"
+        if v.faction.isEmpty {
+            errors[.faction] = "Choose a faction"
         }
         
-        // Points
-        if let cp = Int(values.cp) {
-            if !(0...12).contains(cp) { err[.cp] = "0‑12" }
-        } else { err[.cp] = "Number" }
-        
-        if let tp = Int(values.points) {
-            if tp <= 0 { err[.points] = "Must be > 0" }
-        } else { err[.points] = "Number" }
-        
-        // Slots (6 valores)
-        for (field, str) in values.slots {
-            if let val = Int(str) {
-                if val < 0 { err[field] = "≥ 0" }
-            } else { err[field] = "Number" }
+        // ── 2. Command & Total points ───────────────────────────
+        if let cp = Int(v.cp), cp < 0 {
+            errors[.cp] = "≥ 0"
+        } else if Int(v.cp) == nil {
+            errors[.cp] = "Number"
         }
-        return BuildFormState(isValid: err.isEmpty, errors: err)
+        
+        if let pts = Int(v.points), pts <= 0 {
+            errors[.points] = "> 0"
+        } else if Int(v.points) == nil {
+            errors[.points] = "Number"
+        }
+        
+        // ── 3. Slots contra límites de detachment ───────────────
+        if let det = detachment {
+            checkSlot(.hq,     v.slots[.hq],     det.limits.hq,          &errors)
+            checkSlot(.troops, v.slots[.troops], det.limits.troops,      &errors)
+            checkSlot(.elite,  v.slots[.elite],  det.limits.elite,       &errors)
+            checkSlot(.fast,   v.slots[.fast],   det.limits.fastAttack,  &errors)
+            checkSlot(.heavy,  v.slots[.heavy],  det.limits.heavySupport,&errors)
+            checkSlot(.flyers, v.slots[.flyers], det.limits.flyers,      &errors)
+        }
+        
+        return BuildFormState(isValid: errors.isEmpty, errors: errors)
+    }
+    
+    // MARK: Helper para límite min‑max
+    private func checkSlot(_ field: BuildFormState.Field,
+                           _ valueStr: String?,
+                           _ limit: MinMax,
+                           _ errors: inout [BuildFormState.Field : String]) {
+        guard let v = Int(valueStr ?? "") else {
+            errors[field] = "Number"; return
+        }
+        if v < limit.min || v > limit.max {
+            errors[field] = "\(limit.min)‑\(limit.max)"
+        }
     }
 }
 

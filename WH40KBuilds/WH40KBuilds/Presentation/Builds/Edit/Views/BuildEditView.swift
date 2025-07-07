@@ -45,6 +45,7 @@ struct BuildEditView: View {
                     .foregroundColor(.white)
                     .textCase(nil)
             }
+            .listRowBackground(Color.buildFormColor)
             
             // ───────── Points ─────────
             Section {
@@ -56,6 +57,7 @@ struct BuildEditView: View {
                     .foregroundColor(.white)
                     .textCase(nil)
             }
+            .listRowBackground(Color.buildFormColor)
             
             // ───────── Slots ─────────
             Section {
@@ -71,6 +73,7 @@ struct BuildEditView: View {
                     .foregroundColor(.white)
                     .textCase(nil)
             }
+            .listRowBackground(Color.buildFormColor)
             
             // ───────── Save ─────────
             Section {
@@ -78,9 +81,14 @@ struct BuildEditView: View {
                     if vm.isSaving { ProgressView() }
                     else { Text("Save Changes").frame(maxWidth: .infinity) }
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.bordered)
+                .foregroundColor(.white)
+                .cornerRadius(16.0)
+                .background(vm.formState.isValid ? .buildBackground : .buildFormColor.opacity(0.5))
                 .disabled(!vm.formState.isValid || vm.isSaving)
             }
+            .listRowBackground(Color.clear)
+            .cornerRadius(16.0)
         }
         .navigationTitle("Edit Build")
         .onTapGesture { hideKeyboard()}

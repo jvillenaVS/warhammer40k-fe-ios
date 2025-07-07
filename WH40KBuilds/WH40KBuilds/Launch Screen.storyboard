@@ -15,17 +15,18 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="splash-bg" translatesAutoresizingMaskIntoConstraints="NO" id="SAP-wD-03l">
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="splash-bg" translatesAutoresizingMaskIntoConstraints="NO" id="VxV-6P-SOu" userLabel="splash-bg">
                                 <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                             </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <constraints>
-                            <constraint firstAttribute="bottom" secondItem="SAP-wD-03l" secondAttribute="bottom" id="AYd-A5-g9d"/>
-                            <constraint firstItem="SAP-wD-03l" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="GfT-8k-QVC"/>
-                            <constraint firstAttribute="trailing" secondItem="SAP-wD-03l" secondAttribute="trailing" id="LZD-2f-bsM"/>
-                            <constraint firstItem="SAP-wD-03l" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="yLX-xZ-dmO"/>
+                            <constraint firstItem="VxV-6P-SOu" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="4zU-sd-axK"/>
+                            <constraint firstAttribute="bottom" secondItem="VxV-6P-SOu" secondAttribute="bottom" id="NNm-vg-mTP"/>
+                            <constraint firstItem="VxV-6P-SOu" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="aWR-AU-0M5"/>
+                            <constraint firstAttribute="trailing" secondItem="VxV-6P-SOu" secondAttribute="trailing" id="ulB-mN-4FQ"/>
                         </constraints>
                     </view>
                 </viewController>

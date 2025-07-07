@@ -9,26 +9,35 @@ import SwiftUI
 import AVFoundation
 import _AVKit_SwiftUI
 
-
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: - MainMenuView
+// ─────────────────────────────────────────────────────────────────────────────
 struct MainMenuView: View {
+    // Dependencias
     @EnvironmentObject private var session: SessionStore
     let repo: BuildRepository
     let authService: any AuthService
     
-    /// Datos de menú: título + SF Symbol
+    // Items del menú principal
     private let menuItems: [(title: String, icon: String)] = [
-        ("My Builds", "folder"),
-        ("Explore Armies", "magnifyingglass"),
-        ("Rules", "book"),
-        ("Simulator", "gamecontroller"),
-        ("Profile", "person.crop.circle"),
-        ("Settings", "gearshape.fill")
+        ("My Builds",       "folder"),
+        ("Explore Armies",  "magnifyingglass"),
+        ("Rules",           "book"),
+        ("Simulator",       "gamecontroller"),
+        ("Profile",         "person.crop.circle"),
+        ("Settings",        "gearshape.fill")
     ]
     
+    // Video splash
     private let player = AVPlayer(url: Bundle.main.url(forResource: "splash", withExtension: "mp4")!)
     
-    // Grilla 2 × 3
+    // Layout
     private let gridColumns = [GridItem(.flexible()), GridItem(.flexible())]
+    
+    // Sincronización
+    @State private var isSyncing = false
+    @State private var showErrorAlert = false
+    @State private var errorMessage: String = ""
     
     var body: some View {
         NavigationStack {
@@ -36,41 +45,118 @@ struct MainMenuView: View {
                 Color.appBg.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    VideoPlayerView(player: player)
-                        .frame(height: 160)
-                        .ignoresSafeArea(.all)
-                        .allowsHitTesting(false)   
+                    // ── Tope negro de 100 pt ───────────────────────
+                    Rectangle()
+                        .fill(Color.black.opacity(0.75))
+                        .frame(height: 80)
+                        .edgesIgnoringSafeArea(.top)
                     
+                    // ── Video splash ───────────────────────────────
+                    VideoPlayerView(player: player)
+                        .frame(height: 100)
+                        .allowsHitTesting(false)
+                    
+                    // ── Contenido principal ────────────────────────
                     ScrollView {
-                        VStack() {
-                          
+                        VStack(spacing: 15) {
                             Text("WH40K Builder")
                                 .font(.largeTitle.bold())
                                 .foregroundColor(.white)
-                                .padding(.bottom, 10)
+                                .padding(.top, 15)
                             
-                            LazyVGrid(columns: gridColumns, spacing: 24) {
-                                ForEach(menuItems.indices, id: \.self) { index in
-                                    let item = menuItems[index]
+                            // 6 tarjetas
+                            LazyVGrid(columns: gridColumns, spacing: 10) {
+                                ForEach(menuItems.indices, id: \ .self) { idx in
+                                    let item = menuItems[idx]
                                     NavigationCard(title: item.title,
                                                    icon: item.icon,
-                                                   destination: destinationView(for: index))
+                                                   destination: destinationView(for: idx))
                                 }
                             }
                             .padding(.horizontal)
+                            
+                            // Botón de sincronización
+                            syncButton
+                                .padding(.top, 12)
                         }
-                
+                        .padding(.vertical, 60)
                     }
-                
                 }
             }
         }
         .tint(.white)
+        // Alert de error
+        .alert("Sync Error",
+               isPresented: $showErrorAlert,
+               actions: { Button("OK", role: .cancel) {} },
+               message: { Text(errorMessage) })
+    }
+}
+
+// ── Sincronización -----------------------------------------------------------
+private extension MainMenuView {
+    
+    var syncButton: some View {
+        Button(action: onSyncTapped) {
+            HStack(spacing: 8) {
+                Image(systemName: isSyncing
+                      ? "arrow.triangle.2.circlepath.circle.fill"
+                      : "arrow.triangle.2.circlepath")
+                    .imageScale(.large)
+                    .rotationEffect(.degrees(isSyncing ? 360 : 0))
+                    .animation(isSyncing
+                               ? .easeInOut(duration: 1).repeatForever(autoreverses: false)
+                               : .default, value: isSyncing)
+                
+                Text(isSyncing ? "Syncing…" : "Sync Codex Data")
+                    .font(.subheadline.bold())
+            }
+            .foregroundColor(.white)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 28)
+        }
+        .buttonStyle(NeumorphicStyle())
+        .disabled(isSyncing)
     }
     
-    /// Devuelve la vista de destino según el índice del menú.
+    func onSyncTapped() {
+        isSyncing = true
+        Task {
+            do {
+                let codexStore  = try! LocalCodexStore()         
+                let syncManager = CodexSyncManager(store: codexStore)
+                try await syncManager.syncAllCodexData()
+                isSyncing = false
+            } catch {
+                isSyncing = false
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
+            }
+        }
+    }
+}
+
+// ── Custom ButtonStyle (neumórfico 3‑D) -------------------------------------
+struct NeumorphicStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                RoundedRectangle(cornerRadius: 30, style: .continuous)
+                    .fill(Color.buildBackgroundColor)
+                    .shadow(color: .black.opacity(configuration.isPressed ? 0 : 0.4),
+                            radius: 6, x: 0, y: 4)
+                    .shadow(color: .white.opacity(configuration.isPressed ? 0 : 0.08),
+                            radius: 6, x: 0, y: -4)
+            )
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+// ── Destinos de navegación ---------------------------------------------------
+private extension MainMenuView {
     @ViewBuilder
-    private func destinationView(for index: Int) -> some View {
+    func destinationView(for index: Int) -> some View {
         switch index {
         case 0: BuildListView(repository: repo, session: session)
         case 1: ExploreArmiesView()
@@ -83,7 +169,7 @@ struct MainMenuView: View {
     }
 }
 
-// MARK: - NavigationCard
+// ── Tarjeta de menú ----------------------------------------------------------
 struct NavigationCard<Destination: View>: View {
     let title: String
     let icon: String
@@ -115,6 +201,7 @@ struct NavigationCard<Destination: View>: View {
     }
 }
 
+// ── Video de cabecera --------------------------------------------------------
 struct VideoPlayerView: View {
     let player: AVPlayer
 
@@ -126,7 +213,6 @@ struct VideoPlayerView: View {
                 player.play()
                 player.isMuted = true
                 player.actionAtItemEnd = .none
-            
                 NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime,
                                                        object: player.currentItem,
                                                        queue: .main) { _ in
@@ -134,51 +220,14 @@ struct VideoPlayerView: View {
                     player.play()
                 }
             }
-            .onDisappear {
-                player.pause()
-            }
+            .onDisappear { player.pause() }
     }
 }
 
-// MARK: - Placeholder Views
-
-struct ExploreArmiesView: View {
-    var body: some View {
-        Text("Explore Armies")
-            .foregroundColor(.white)
-            .background(Color.black.ignoresSafeArea())
-    }
-}
-
-struct RulesReferencesView: View {
-    var body: some View {
-        Text("Rules")
-            .foregroundColor(.white)
-            .background(Color.black.ignoresSafeArea())
-    }
-}
-
-struct SimulatorView: View {
-    var body: some View {
-        Text("Simulator")
-            .foregroundColor(.white)
-            .background(Color.black.ignoresSafeArea())
-    }
-}
-
-struct ProfileView: View {
-    var body: some View {
-        Text("Profile")
-            .foregroundColor(.white)
-            .background(Color.black.ignoresSafeArea())
-    }
-}
-
-struct SettingsView: View {
-    var body: some View {
-        Text("Settings")
-            .foregroundColor(.white)
-            .background(Color.black.ignoresSafeArea())
-    }
-}
+// ── Placeholders -------------------------------------------------------------
+struct ExploreArmiesView: View { var body: some View { Color.black.ignoresSafeArea().overlay(Text("Explore Armies").foregroundColor(.white)) } }
+struct RulesReferencesView: View { var body: some View { Color.black.ignoresSafeArea().overlay(Text("Rules").foregroundColor(.white)) } }
+struct SimulatorView: View { var body: some View { Color.black.ignoresSafeArea().overlay(Text("Simulator").foregroundColor(.white)) } }
+struct ProfileView: View { var body: some View { Color.black.ignoresSafeArea().overlay(Text("Profile").foregroundColor(.white)) } }
+struct SettingsView: View { var body: some View { Color.black.ignoresSafeArea().overlay(Text("Settings").foregroundColor(.white)) } }
 

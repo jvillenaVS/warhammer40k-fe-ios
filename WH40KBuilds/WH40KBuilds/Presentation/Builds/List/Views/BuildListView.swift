@@ -70,7 +70,9 @@ struct BuildListView: View {
         .tint(.white)
 
         .navigationDestination(isPresented: $showForm) {
-            BuildFormView(repository: repository, session: session)
+            BuildFormView(repository: repository,
+                          codex: FirestoreCodexRepository(),
+                          session: session)
         }
         .background(Color(.systemGray6).opacity(0.05))
         .tint(.white)
@@ -165,7 +167,7 @@ private struct BuildRowView: View {
         HStack(spacing: 16) {
            
             let imgName = "faction_\(build.faction.name.lowercased())"
-            let uiImage = UIImage(named: imgName) ?? UIImage(named: "app-logo")!
+            let uiImage = UIImage(named: imgName) ?? UIImage(named: "wh-logo")!
             
             Image(uiImage: uiImage)
                 .resizable()
@@ -271,6 +273,7 @@ private struct EmptyStateView: View {
                 ? "Tap + to create your first build."
                 : "Please log in to see or create builds.")
         )
+        .foregroundColor(.white)
     }
 }
 
@@ -283,6 +286,7 @@ private struct ErrorStateView: View {
             Text(error)
                 .multilineTextAlignment(.center)
         }
+        .foregroundColor(.white)
         .padding()
     }
 }

@@ -9,8 +9,9 @@ import SwiftUI
 
 extension Color {
     static let appBg = Color("appBackground")
-    static let buildBackgroundColor = Color("buildBackgroundColor")
-    static let buildTintColor = Color("buildTintColor")
-    static let buildTitleColor = Color("buildTitleColor")
+    static let buildBackgroundColor = Color("buildBackground")
+    static let buildTintColor = Color("buildTint")
+    static let buildTitleColor = Color("buildTitle")
+    static let buildFormColor = Color("buildForm")
     static let buildSubTitleColor = Color(.white).opacity(0.8)
 }

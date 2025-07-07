@@ -8,11 +8,6 @@
 import SwiftUI
 import PDFKit
 
-enum PDFExportError: Error {
-    case renderFailed
-    case contextFailed
-}
-
 final class SwiftUIPDFExporter: BuildPDFExporter {
     
     /// Genera un PDF y devuelve la URL temporal.
