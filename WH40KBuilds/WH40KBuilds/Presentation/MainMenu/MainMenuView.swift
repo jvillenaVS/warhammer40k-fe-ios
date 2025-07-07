@@ -9,14 +9,14 @@ import SwiftUI
 import AVFoundation
 import _AVKit_SwiftUI
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: - MainMenuView
-// ─────────────────────────────────────────────────────────────────────────────
 struct MainMenuView: View {
-    // Dependencias
+  
     @EnvironmentObject private var session: SessionStore
     let repo: BuildRepository
     let authService: any AuthService
+    
+    @State private var showSyncMessage = false
+    @State private var syncMessage = ""
     
     // Items del menú principal
     private let menuItems: [(title: String, icon: String)] = [
@@ -52,9 +52,25 @@ struct MainMenuView: View {
                         .edgesIgnoringSafeArea(.top)
                     
                     // ── Video splash ───────────────────────────────
-                    VideoPlayerView(player: player)
-                        .frame(height: 100)
-                        .allowsHitTesting(false)
+                    CubeFlipView(
+                        showSide: $showSyncMessage,
+                        front: VideoPlayerView(player: player),
+                        side:  ZStack {
+                            Color.appBg
+                            VStack(spacing: 4) {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(.largeTitle)
+                                Text(syncMessage)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        }
+                    )
+                    .frame(height: 200)     
+                    .cornerRadius(12)
+                    .offset(y: -70)
+                    .padding(.bottom, -130)
                     
                     // ── Contenido principal ────────────────────────
                     ScrollView {
@@ -123,16 +139,31 @@ private extension MainMenuView {
         isSyncing = true
         Task {
             do {
-                let codexStore  = try! LocalCodexStore()         
+                let codexStore  = try! LocalCodexStore()
                 let syncManager = CodexSyncManager(store: codexStore)
                 try await syncManager.syncAllCodexData()
+                
                 isSyncing = false
+                syncMessage = "✅ Sync done!\n\(formattedDate())"
+                showSyncMessage = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                    showSyncMessage = false
+                }
             } catch {
                 isSyncing = false
-                errorMessage = error.localizedDescription
-                showErrorAlert = true
+                syncMessage = "❌ Sync Failure!\n\(formattedDate())"
+                showSyncMessage = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                    showSyncMessage = false
+                }
             }
         }
+    }
+    
+    private func formattedDate() -> String {
+        let df = DateFormatter()
+        df.dateFormat = "MM/dd/yyyy – hh:mm a"
+        return df.string(from: Date())
     }
 }
 
@@ -221,6 +252,7 @@ struct VideoPlayerView: View {
                 }
             }
             .onDisappear { player.pause() }
+            .allowsHitTesting(false)  
     }
 }
 
