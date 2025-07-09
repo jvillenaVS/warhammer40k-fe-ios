@@ -35,3 +35,9 @@ struct NavigationBarModifier: ViewModifier {
         content
     }
 }
+
+extension View {
+    func navigationBarStyle() -> some View {
+        self.modifier(NavigationBarModifier(backgroundColor: Color.black.opacity(0.85), titleColor: .white))
+    }
+}

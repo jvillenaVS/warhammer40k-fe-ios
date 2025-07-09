@@ -8,7 +8,7 @@
 import SwiftUI
 
 extension View {
-    /// Cierra el teclado activo
+    
     func hideKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
                                         to: nil, from: nil, for: nil)

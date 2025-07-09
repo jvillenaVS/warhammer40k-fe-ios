@@ -1,5 +1,5 @@
 //
-//  CubeFlipView.swift
+//  CubeAnimationView.swift
 //  WH40KBuilds
 //
 //  Created by Jose Villena on 7/7/25.
@@ -9,7 +9,7 @@ import SwiftUI
 import AVKit
 
 /// Gira 0° ⇄ 90° mostrando una cara lateral (efecto cubo 3‑D)
-struct CubeFlipView<Front: View, Side: View>: View {
+struct CubeAnimationView<Front: View, Side: View>: View {
     @Binding var showSide: Bool
     let front: Front
     let side:  Side

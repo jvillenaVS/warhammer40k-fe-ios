@@ -13,5 +13,6 @@ extension Color {
     static let buildTintColor = Color("buildTint")
     static let buildTitleColor = Color("buildTitle")
     static let buildFormColor = Color("buildForm")
+    static let redCancelColor = Color("redCancel")
     static let buildSubTitleColor = Color(.white).opacity(0.8)
 }

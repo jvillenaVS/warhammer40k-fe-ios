@@ -45,7 +45,7 @@ struct BuildListView: View {
                 .scrollIndicators(.hidden)
             
         }
-        .modifier(NavigationBarModifier(backgroundColor: Color.black.opacity(0.85), titleColor: .white))
+        .navigationBarStyle()
         .overlay(alignment: .bottomTrailing) {
             addFAB
             

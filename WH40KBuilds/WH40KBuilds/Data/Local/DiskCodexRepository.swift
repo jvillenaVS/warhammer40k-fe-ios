@@ -9,7 +9,6 @@ import Combine
 
 struct DiskCodexRepository: CodexRepository {
     
-    /// Instancia inyectada del store (por defecto la compartida)
     private let store: LocalCodexStore
     
     init(store: LocalCodexStore = try! LocalCodexStore()) {

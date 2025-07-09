@@ -25,10 +25,10 @@ import Foundation
 ///
 public protocol SyncCodex {
     
-    /// Sincroniza **todo** el catálogo (la edición o las ediciones
-    /// que tu app soporte).  Debe lanzarse en background‑thread (es `async`)
-    /// y propaga cualquier error para que la UI pueda mostrarlo.
-    func syncAllCodexData() async throws
+    /// Sincroniza las ediciones indicadas o ‑si es nil‑
+    /// *descubre* todas las que existan en `/editions`.
+    @discardableResult
+    func syncAllCodexData(_ editions: [String]?) async throws -> [String]
     
     /// (Opcional) sincroniza solo una edición concreta, por ejemplo "10e".
     /// Si no la necesitas puedes comentar este método.

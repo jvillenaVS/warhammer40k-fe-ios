@@ -7,8 +7,6 @@
 
 import Combine
 
-/// Adaptador Repository que delega en el DataSource y
-/// traduce cualquier mapeo de dominio si fuera necesario.
 final class FirestoreBuildRepository: BuildRepository {
     
     private let dataSource = FirestoreBuildDataSource()
