@@ -2,6 +2,8 @@
 //  BuildFormViewModel.swift
 //  WH40KBuilds
 //
+//  Created by Jose Villena on 1/7/25.
+//
 
 import Combine
 import Foundation
@@ -41,21 +43,19 @@ final class BuildFormViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     
     // MARK: – Deps
-    private let repo:   BuildRepository
+    private let repository:   BuildRepository
     private let codex:  CodexRepository
-    private let session: SessionStore
+    private(set) var session: SessionStore?
     private let validator = ValidateBuildForm()
     
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: – Init
     init(repository: BuildRepository,
-         codex: CodexRepository,
-         session: SessionStore) {
+         codex: CodexRepository) {
         
-        self.repo    = repository
-        self.codex   = codex
-        self.session = session
+        self.repository  = repository
+        self.codex = codex
         
         bindValidation()
         loadFactions()
@@ -107,7 +107,6 @@ final class BuildFormViewModel: ObservableObject {
             .assign(to: &$detachmentType)
     }
     
-   
     private func bindSubFactionCascade() {
         
         $selectedFaction
@@ -192,11 +191,11 @@ final class BuildFormViewModel: ObservableObject {
             units: [],
             stratagems: [],
             notes: nil,
-            createdBy: session.uid ?? "unknown",
+            createdBy: session?.uid ?? "unknown",
             createdAt: Date()
         )
         
-        repo.addBuild(build)
+        repository.addBuild(build)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] comp in
                 self?.isSaving = false
@@ -207,6 +206,10 @@ final class BuildFormViewModel: ObservableObject {
                 }
             } receiveValue: { }
             .store(in: &cancellables)
+    }
+    
+    func attachSession(_ session: SessionStore) {
+        self.session = session
     }
     
     func clearError() { errorMessage = nil }

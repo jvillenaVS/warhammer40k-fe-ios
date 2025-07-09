@@ -9,7 +9,7 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject private var session: SessionStore
-    let repo: BuildRepository
+    let repository: BuildRepository
     let authService: any AuthService
     
     @State private var showSplash = true
@@ -18,7 +18,7 @@ struct RootView: View {
         ZStack {
             switch session.authState {
             case .signedIn:
-                MainMenuView(repo: repo, authService: authService)
+                MainMenuView(repository: repository, authService: authService)
             case .signedOut:
                 LoginView(authService: authService)
             case .loading:

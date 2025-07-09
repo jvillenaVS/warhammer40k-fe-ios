@@ -12,8 +12,8 @@ struct BuildEditView: View {
     @Binding var build: Build
     @StateObject private var vm: BuildEditViewModel
     @Environment(\.dismiss) private var dismiss
-    
     @FocusState private var focus: Field?
+   
     enum Field: Hashable {
         case name, faction, subfaction, detachment
         case cp, points

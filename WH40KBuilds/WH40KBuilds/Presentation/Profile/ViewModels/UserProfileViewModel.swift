@@ -17,14 +17,14 @@ final class UserProfileViewModel: ObservableObject {
     @Published private(set) var avatarURL: URL?     // opcional (p.ej. para compartir)
 
     // ── Dependencias
-    private let repo:  AvatarRepository
+    private let repository:  AvatarRepository
     private let uid:   String
     private let cache  = LocalAvatarStore()
 
     // ── Init
-    init(repo: AvatarRepository = FirebaseAvatarRepository(),
+    init(repository: AvatarRepository = FirebaseAvatarRepository(),
          uid:  String) {
-        self.repo = repo
+        self.repository = repository
         self.uid  = uid
 
         self.avatarUIImage = LocalAvatarStore.quickLoadSync(for: uid)
@@ -48,7 +48,7 @@ final class UserProfileViewModel: ObservableObject {
 
     // MARK: - Obtener la versión más reciente (con cache‑buster)
     func reloadAvatar() async {
-        guard let url = try? await repo.fetchAvatar(for: uid) else { return }
+        guard let url = try? await repository.fetchAvatar(for: uid) else { return }
 
         do {
             // — Cache‑buster para esquivar caché de CDN/URLSession
@@ -79,7 +79,7 @@ final class UserProfileViewModel: ObservableObject {
             do {
                 avatarUIImage = image
                 try await cache.save(image, for: uid)          // se guarda local
-                avatarURL = try await repo.uploadAvatar(image, for: uid) // sube
+                avatarURL = try await repository.uploadAvatar(image, for: uid) // sube
             } catch {
                 print("❌ Avatar upload error:", error.localizedDescription)
             }
@@ -90,7 +90,7 @@ final class UserProfileViewModel: ObservableObject {
     func deleteAvatar() {
         Task {
             do {
-                try await repo.deleteAvatar(for: uid)
+                try await repository.deleteAvatar(for: uid)
                 try await cache.delete(for: uid)
                 avatarUIImage = nil
                 avatarURL     = nil

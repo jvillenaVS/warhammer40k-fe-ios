@@ -11,8 +11,8 @@ import PhotosUI
 struct UserProfileView: View {
 
     // ── Dependencias
-    @EnvironmentObject private var session: SessionStore
     @StateObject private var vm: UserProfileViewModel
+    private var session: SessionStore
 
     // MARK: – Estilo
     private let bannerHeight: CGFloat = 200
@@ -35,10 +35,11 @@ struct UserProfileView: View {
 
     // MARK: – Init
     init(session: SessionStore,
-         repo: AvatarRepository = FirebaseAvatarRepository()) {
+         repository: AvatarRepository = FirebaseAvatarRepository()) {
+        self.session = session
         let uid = session.uid ?? ""
         _vm = StateObject(wrappedValue:
-                            UserProfileViewModel(repo: repo, uid: uid))
+                            UserProfileViewModel(repository: repository, uid: uid))
     }
 
     // MARK: – Body
@@ -51,9 +52,9 @@ struct UserProfileView: View {
         .background(Color.appBackground)
         .onAppear {
             animateBorder = true
-            Task { await vm.reloadAvatar() }      // carga caché + remoto más reciente
+            Task { await vm.reloadAvatar() }
         }
-        .onChange(of: selectedItem) { _, item in  // picker
+        .onChange(of: selectedItem) { _, item in  
             loadPickedImage(item)
         }
         .overlay(logoutOverlay)
@@ -177,7 +178,6 @@ struct UserProfileView: View {
     let session = SessionStore(service: MockAuthService())
     NavigationStack {
         UserProfileView(session: session)
-            .environmentObject(session)
     }
     .preferredColorScheme(.dark)
 }

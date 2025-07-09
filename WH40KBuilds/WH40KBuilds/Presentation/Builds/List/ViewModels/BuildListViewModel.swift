@@ -18,21 +18,19 @@ final class BuildListViewModel: ObservableObject {
     
     // MARK: - Deps
     private let repository: BuildRepository
-    private let session: SessionStore
+    private(set) var session: SessionStore?
     
     private var cancellables = Set<AnyCancellable>()
     private var firestoreCancellable: AnyCancellable?
     
     // MARK: - Init
-    init(repository: BuildRepository, session: SessionStore) {
+    init(repository: BuildRepository) {
         self.repository = repository
-        self.session    = session
-        bindSession()
     }
     
     // Escucha el cambio de uid
     private func bindSession() {
-        session.$authState
+        session?.$authState
             .map { state -> String? in        
                 if case let .signedIn(user) = state { return user.uid }
                 return nil
@@ -75,5 +73,10 @@ final class BuildListViewModel: ObservableObject {
                 .sink(receiveCompletion: { _ in }, receiveValue: { })
                 .store(in: &cancellables)
         }
+    }
+    
+    func attachSession(_ session: SessionStore) {
+        self.session = session
+        bindSession()
     }
 }

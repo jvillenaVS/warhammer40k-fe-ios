@@ -18,7 +18,7 @@ struct MainMenuView: View {
     @State private var showErrorAlert = false
     @State private var errorMessage: String = ""
     
-    let repo: BuildRepository
+    let repository: BuildRepository
     let authService: any AuthService
     private let player = AVPlayer(url: Bundle.main.url(forResource: "splash", withExtension: "mp4")!)
     private let gridColumns = [GridItem(.flexible()), GridItem(.flexible())]
@@ -148,7 +148,7 @@ private extension MainMenuView {
     @ViewBuilder
     func destinationView(for index: Int) -> some View {
         switch index {
-        case 0: BuildListView(repository: repo, session: session)
+        case 0: BuildListView(repository: repository)
         case 1: ExploreArmiesView()
         case 2: RulesView()
         case 3: SimulatorView()

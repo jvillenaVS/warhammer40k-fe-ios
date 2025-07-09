@@ -9,10 +9,10 @@ import SwiftUI
 import PDFKit
 
 struct BuildDetailView: View {
-    // MARK: - Bindings & Dependencies
+    
+    @EnvironmentObject private var session: SessionStore
     @Binding var build: Build
     let repository: BuildRepository
-    @EnvironmentObject private var session: SessionStore
     
     // MARK: - Navigation & Share
     @State private var showEdit   = false
@@ -160,6 +160,10 @@ private extension BuildDetailView {
     
     func validSymbol(_ primary: String, fallback: String = "flag.fill") -> String {
         UIImage(systemName: primary) == nil ? fallback : primary
+    }
+    
+    func getRepository() -> BuildRepository {
+        return repository
     }
     
 }

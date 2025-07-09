@@ -15,16 +15,19 @@ final class BuildDetailViewModel: ObservableObject {
     @Published var showingError: Bool = false
     @Published var pdfURL: URL?
     
-    private let repo: BuildRepository
+    private let session: SessionStore?
+    private let repository: BuildRepository
     private var cancellables = Set<AnyCancellable>()
     
-    init(build: Build, repo: BuildRepository) {
+    init(build: Build, repository: BuildRepository,
+         session: SessionStore) {
         self.build = build
-        self.repo  = repo
+        self.repository  = repository
+        self.session = session
     }
     
     func saveChanges() {
-        repo.updateBuild(build)
+        repository.updateBuild(build)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] completion in
                 if case .failure(let error) = completion {

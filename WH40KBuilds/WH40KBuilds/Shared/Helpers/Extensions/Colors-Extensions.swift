@@ -15,4 +15,6 @@ extension Color {
     static let buildFormColor = Color("buildForm")
     static let redCancelColor = Color("redCancel")
     static let buildSubTitleColor = Color(.white).opacity(0.8)
+    static let dialogBackgroundColor = Color("dialogBackground")
+    static let dialogBottomColor = Color("dialogBottom")
 }

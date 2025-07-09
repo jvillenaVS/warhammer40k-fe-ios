@@ -15,7 +15,7 @@ struct WH40KBuildsApp: App {
     
     // Dependencias como constantes normales
     private let authService: AuthService
-    private let repo: BuildRepository
+    private let repository: BuildRepository
     private let sharedModelContainer: ModelContainer
     private let session: SessionStore
     
@@ -30,7 +30,7 @@ struct WH40KBuildsApp: App {
         }
         
         self.authService = FirebaseAuthService()
-        self.repo        = FirestoreBuildRepository()
+        self.repository  = FirestoreBuildRepository()
         self.session     = SessionStore(service: FirebaseAuthService())
         
         let schema = Schema([ Item.self ])
@@ -43,7 +43,7 @@ struct WH40KBuildsApp: App {
     // MARK: – UI
     var body: some Scene {
         WindowGroup {
-            RootView(repo: repo, authService: authService)
+            RootView(repository: repository, authService: authService)
                 .environmentObject(session)
         }
         .modelContainer(sharedModelContainer)

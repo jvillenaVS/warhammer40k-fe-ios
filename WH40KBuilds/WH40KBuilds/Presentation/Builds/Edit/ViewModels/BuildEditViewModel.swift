@@ -42,7 +42,7 @@ final class BuildEditViewModel: ObservableObject {
     // ───────── Deps
     private let repository: BuildRepository
     private let codex: CodexRepository
-    private let session: SessionStore
+    private let session: SessionStore?
     private let validator = ValidateBuildForm()
     
     private let original: Build

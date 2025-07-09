@@ -9,57 +9,59 @@ import SwiftUI
 
 struct BuildFormView: View {
     
-    // ───────── View‑Model & env
     @StateObject private var vm: BuildFormViewModel
     @Environment(\.dismiss)        private var dismiss
     @EnvironmentObject private var session: SessionStore
-    
-    // ───────── Focus management
     @FocusState private var focus: Field?
-    enum Field: Hashable {
-        case name
-        case cp, pts
-        case hq, troops, elite, fast, heavy, flyers
-    }
+    @State private var showingAlert = false
     
-    // ───────── Init  (repo y codex inyectados desde la lista)
     init(repository: BuildRepository = FirestoreBuildRepository(),
-         codex: CodexRepository     = FirestoreCodexRepository(),
-         session: SessionStore) {
-        _vm = StateObject(
-            wrappedValue: BuildFormViewModel(
-                repository: repository,
-                codex:      codex,
-                session:    session)
-        )
+         codex: CodexRepository     = FirestoreCodexRepository()) {
+        _vm = StateObject(wrappedValue:
+                            BuildFormViewModel(repository: repository,
+                                               codex:      codex))
     }
     
-    // ───────── Body
     var body: some View {
+        formCore
+            .scrollContentBackground(.hidden)
+            .background(Color.appBackground)
+            .navigationTitle("New Build")
+            .onTapGesture { hideKeyboard() }
+            .alert(isPresented: errorBinding, content: errorAlert)
+            .onChange(of: vm.saveSuccess) { _, ok in
+                if ok { dismiss() }
+            }
+            .onAppear {
+                if vm.session == nil { vm.attachSession(session) }
+            }
+    }
+    
+    @ViewBuilder
+    private var formCore: some View {
         Form {
             buildInfoSection
             pointsSection
             slotsSection
             saveSection
         }
-        .scrollContentBackground(.hidden)
-        .background(Color.appBackground)
-        .navigationTitle("New Build")
-        .onTapGesture { hideKeyboard() }
-        
-        // Alert global
-        .alert("Message",
-               isPresented: Binding(
-                get: { vm.errorMessage != nil },
-                set: { _ in vm.clearError() })
-        ) { Button("OK", role: .cancel) { } } message: {
-            Text(vm.errorMessage ?? "")
-        }
-        
-        // Cierra al guardar
-        .onChange(of: vm.saveSuccess) { _, ok in
-            if ok { dismiss() }
-        }
+    }
+    
+    // MARK: – Alert helper
+    private func errorAlert() -> Alert {
+        Alert(title: Text("Message"),
+              message: Text(vm.errorMessage ?? ""),
+              dismissButton: .default(Text("OK")) {
+            vm.clearError()
+        })
+    }
+    
+    // MARK: - Alert binding (computado)
+    private var errorBinding: Binding<Bool> {
+        Binding(
+            get: { vm.errorMessage != nil },
+            set: { _ in vm.clearError() }
+        )
     }
     
     // MARK: – Build Info
@@ -67,10 +69,8 @@ struct BuildFormView: View {
         Section(
             content: {
                 
-                // Name
                 field("Name", text: $vm.name, tag: .name, next: .cp)
                 
-                // Faction picker
                 if vm.factions.isEmpty {
                     ProgressView("Loading factions…")
                 } else {
