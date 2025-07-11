@@ -13,26 +13,13 @@ import GoogleSignIn
 @main
 struct WH40KBuildsApp: App {
     
-    // Dependencias como constantes normales
-    private let authService: AuthService
-    private let repository: BuildRepository
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var environment = AppEnvironment()
     private let sharedModelContainer: ModelContainer
-    private let session: SessionStore
     
     // MARK: – Init
     init() {
-        FirebaseApp.configure()
-
-        if let clientID = FirebaseApp.app()?.options.clientID {
-            GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
-        } else {
-            print("❌ ERROR: Firebase clientID not found.")
-        }
-        
-        self.authService = FirebaseAuthService()
-        self.repository  = FirestoreBuildRepository()
-        self.session     = SessionStore(service: FirebaseAuthService())
-        
         let schema = Schema([ Item.self ])
         let config = ModelConfiguration(schema: schema,
                                         isStoredInMemoryOnly: false)
@@ -43,9 +30,15 @@ struct WH40KBuildsApp: App {
     // MARK: – UI
     var body: some Scene {
         WindowGroup {
-            RootView(repository: repository, authService: authService)
-                .environmentObject(session)
+            RootView(repository: environment.repository, authService: environment.authService)
+                .environmentObject(environment.session)
         }
         .modelContainer(sharedModelContainer)
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                environment.session.refreshFCMTokenIfNeeded()
+            }
+        }
     }
 }
+

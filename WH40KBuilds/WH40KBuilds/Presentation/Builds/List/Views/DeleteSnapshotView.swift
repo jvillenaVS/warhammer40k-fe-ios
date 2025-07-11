@@ -26,25 +26,31 @@ struct DeleteSnapshotView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 20) {
-                Text("Delete Build?")
-                    .font(.headline)
+                Text("Delete Build")
+                    .font(.inter(.bold, 18))
                     .foregroundStyle(.white)
 
                 Text("Are you sure you want to delete this build?")
-                    .font(.subheadline)
+                    .font(.inter(.regular, 14))
                     .foregroundStyle(.white.opacity(0.8))
                     .multilineTextAlignment(.center)
 
-                HStack(spacing: 12) {
+                HStack(spacing: 16) {
                     Button("Cancel", role: .cancel, action: onCancel)
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .background(Color(.systemGray5), in: RoundedRectangle(cornerRadius: 10))
-                        .foregroundColor(.black)
+                        .font(.inter(.medium, 13))
+                        .frame(maxWidth: .infinity, minHeight: 36)
+                        .background(Color(.systemGray5), in: RoundedRectangle(cornerRadius: 18))
+                        .foregroundStyle(.black)
 
                     Button("Delete", role: .destructive, action: onDelete)
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .background(.redCancel, in: RoundedRectangle(cornerRadius: 10))
-                        .foregroundColor(.white)
+                        .font(.inter(.medium, 13))
+                        .frame(maxWidth: .infinity, minHeight: 36)
+                        .background(.clear, in: RoundedRectangle(cornerRadius: 18))
+                        .foregroundStyle(.redCancel)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18)
+                                .stroke(.redCancel, lineWidth: 1.0)
+                        )
                 }
             }
             .padding(24)

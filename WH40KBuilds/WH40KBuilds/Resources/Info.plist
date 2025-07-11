@@ -2,10 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>OPENAI_API_KEY</key>
-	<string>$(OPENAI_API_KEY)</string>
-	<key>UILaunchStoryboardName</key>
-	<string>Launch Screen</string>
+	<key>App Uses Non-Exempt Encryption</key>
+	<false/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -14,14 +12,16 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>com.googleusercontent.apps.553567880388-fo6aoupijdp3upounfshkq14mo0hebnn</string>
-                <string>instagram-stories</string>
+				<string>instagram-stories</string>
 			</array>
 		</dict>
 	</array>
-    <key>LSApplicationQueriesSchemes</key>
-       <array>
-           <string>instagram-stories</string>
-       </array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>instagram-stories</string>
+	</array>
+	<key>OPENAI_API_KEY</key>
+	<string>$(OPENAI_API_KEY)</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Inter-Bold.ttf</string>
@@ -29,6 +29,10 @@
 		<string>Inter-Medium.ttf</string>
 		<string>Inter-Regular.ttf</string>
 		<string>Inter-SemiBold.ttf</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
 	</array>
 </dict>
 </plist>

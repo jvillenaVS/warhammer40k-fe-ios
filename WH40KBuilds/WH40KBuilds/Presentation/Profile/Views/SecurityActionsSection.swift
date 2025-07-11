@@ -22,8 +22,8 @@ struct SecurityActionsSection: View {
         
             Button(action: onChangePassword) {
                 Text("Change Password")
-                    .font(.inter(.bold, 14))
-                    .foregroundColor(.white)
+                    .font(.inter(.medium, 14))
+                    .foregroundStyle(.white)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.vertical, 8)
                     .background(Color.buildTint)
@@ -32,12 +32,16 @@ struct SecurityActionsSection: View {
 
             Button(action: onLogout) {
                 Text("Logout")
-                    .font(.inter(.bold, 14))
-                    .foregroundColor(.white)
+                    .font(.inter(.medium, 14))
+                    .foregroundStyle(.redCancel)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.vertical, 8)
-                    .background(.redCancel)
+                    .background(.clear)
                     .clipShape(RoundedRectangle(cornerRadius: buttonHeight/2, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: buttonHeight/2)
+                            .stroke(.redCancel, lineWidth: 1.0)
+                    )
             }
         }
         .frame(height: buttonHeight)

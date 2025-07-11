@@ -8,6 +8,8 @@
 import Foundation
 import Combine
 import FirebaseAuth
+import FirebaseFirestore
+import FirebaseMessaging
 
 @MainActor
 final class SessionStore: ObservableObject {
@@ -42,9 +44,33 @@ final class SessionStore: ObservableObject {
     }
     
     // MARK: - Public actions
-    
     func signOut() async throws {
         try await service.signOut()
+    }
+    
+    func refreshFCMTokenIfNeeded() {
+        guard case let .signedIn(user) = authState else { return }
+        
+        Messaging.messaging().token { token, error in
+            if let error = error {
+                print("❌ Error al obtener token FCM (foreground): \(error.localizedDescription)")
+                return
+            }
+            guard let token = token else {
+                print("❌ Token FCM es nulo (foreground)")
+                return
+            }
+            
+            let db = Firestore.firestore()
+            let userRef = db.collection("users").document(user.uid)
+            userRef.setData(["fcmToken": token], merge: true) { error in
+                if let error = error {
+                    print("❌ Error al guardar token FCM en Firestore (foreground): \(error.localizedDescription)")
+                } else {
+                    print("✅ Token FCM actualizado tras volver al foreground")
+                }
+            }
+        }
     }
     
     // MARK: - Private
