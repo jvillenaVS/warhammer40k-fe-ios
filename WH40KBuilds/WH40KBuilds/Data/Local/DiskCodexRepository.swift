@@ -15,6 +15,13 @@ struct DiskCodexRepository: CodexRepository {
         self.store = store
     }
     
+    // ───────── Editions ─────────
+    func editions() -> AnyPublisher<[EditionCodex], Error> {
+        load([RawEditionCodex].self, at: "editionss.json")
+            .map { $0.map(EditionCodex.init(raw:)) }
+            .eraseToAnyPublisher()
+    }
+    
     // ───────── Factions ─────────
     func factions(edition: String) -> AnyPublisher<[FactionCodex], Error> {
         load([RawFactionCodex].self, at: "\(edition)/factions.json")

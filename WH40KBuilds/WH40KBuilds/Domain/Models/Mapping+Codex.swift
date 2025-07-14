@@ -5,6 +5,15 @@
 //  Created by Jose Villena on 7/7/25.
 //
 
+extension EditionCodex {
+    func asRaw() -> RawEditionCodex {
+        .init(id: id, name: name)
+    }
+    init(raw: RawEditionCodex) {
+        self.init(id: raw.id)
+    }
+}
+
 extension FactionCodex {
     func asRaw() -> RawFactionCodex {
         .init(id: id, name: name, iconUrl: iconUrl)

@@ -12,8 +12,7 @@ struct MenuCubeModifier: ViewModifier {
         content
             .frame(height: 200)
             .cornerRadius(12)
-            .offset(y: -70)
-            .padding(.bottom, -130)
+            .padding(.bottom, 85)
     }
 }
 

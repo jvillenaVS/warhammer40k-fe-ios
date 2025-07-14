@@ -28,7 +28,7 @@ struct BuildFormView: View {
             .background(Color.appBackground)
             .navigationTitle("New Build")
             .onTapGesture { hideKeyboard() }
-            .alert(isPresented: errorBinding, content: errorAlert)
+            .alert(isPresented: vm.errorBinding, content: errorAlert)
             .onChange(of: vm.saveSuccess) { _, ok in
                 if ok { dismiss() }
             }
@@ -37,7 +37,6 @@ struct BuildFormView: View {
             }
     }
     
-    @ViewBuilder
     private var formCore: some View {
         Form {
             buildInfoSection
@@ -47,7 +46,6 @@ struct BuildFormView: View {
         }
     }
     
-    // MARK: – Alert helper
     private func errorAlert() -> Alert {
         Alert(title: Text("Message"),
               message: Text(vm.errorMessage ?? ""),
@@ -56,23 +54,33 @@ struct BuildFormView: View {
         })
     }
     
-    // MARK: - Alert binding (computado)
-    private var errorBinding: Binding<Bool> {
-        Binding(
-            get: { vm.errorMessage != nil },
-            set: { _ in vm.clearError() }
-        )
-    }
-    
-    // MARK: – Build Info
     private var buildInfoSection: some View {
         Section(
             content: {
                 
                 field("Name", text: $vm.name, tag: .name, next: .cp)
                 
+                if vm.editions.isEmpty {
+                    ProgressView("Loading editions…")
+                } else {
+                    Picker("Edition", selection: $vm.selectedEdition) {
+                        ForEach(vm.editions) { edition in
+                            Text(edition.name)
+                                .tag(edition as EditionCodex?)
+                        }
+                    }
+                    .pickerStyle()
+                }
+
                 if vm.factions.isEmpty {
-                    ProgressView("Loading factions…")
+                    HStack {
+                        Text("action")
+                            .foregroundColor(.white)
+                            .font(.headline)
+                        Spacer()
+                        Text("Not Available")
+                            .foregroundStyle(.white)
+                    }
                 } else {
                     Picker("Faction", selection: $vm.selectedFaction) {
                         ForEach(vm.factions) { fac in
@@ -80,18 +88,15 @@ struct BuildFormView: View {
                                 .tag(fac as FactionCodex?)
                         }
                     }
-                    .pickerStyle(.menu)
-                    .foregroundColor(.white)
-                    .font(.headline)
+                    .pickerStyle()
                 }
                 
-                // Sub‑Faction picker  (dep. de Faction)
                 if vm.selectedFaction != nil {
                     if vm.subFactions.isEmpty {
                         HStack {
                             Text("Sub‑Faction")
                                 .foregroundColor(.white)
-                                .font(.headline)
+                                .font(.inter(.medium, 14))
                             Spacer()
                             Text("Not Available")
                                 .foregroundStyle(.white)
@@ -103,19 +108,16 @@ struct BuildFormView: View {
                                     .tag(sub as SubFactionCodex?)
                             }
                         }
-                        .pickerStyle(.menu)
-                        .foregroundColor(.white)
-                        .font(.headline)
+                        .pickerStyle()
                     }
                 }
-                
-                // Detachment picker  (dep. de Faction)
+            
                 if vm.selectedFaction != nil {
                     if vm.detachments.isEmpty {
                         HStack {
                             Text("Detachment")
                                 .foregroundColor(.white)
-                                .font(.headline)
+                                .font(.inter(.medium, 14))
                             Spacer()
                             Text("Not Available")
                                 .foregroundStyle(.white)
@@ -128,9 +130,7 @@ struct BuildFormView: View {
                                     .tag(det as DetachmentCodex?)
                             }
                         }
-                        .pickerStyle(.menu)
-                        .foregroundColor(.white)
-                        .font(.headline)
+                        .pickerStyle()
                     }
                 }
             },
@@ -139,7 +139,6 @@ struct BuildFormView: View {
         .listRowBackground(Color.buildFormColor)
     }
     
-    // MARK: – Points
     private var pointsSection: some View {
         Section(
             content: {
@@ -158,7 +157,6 @@ struct BuildFormView: View {
         .listRowBackground(Color.buildFormColor)
     }
     
-    // MARK: – Slots
     private var slotsSection: some View {
         Section(
             content: {
@@ -174,7 +172,6 @@ struct BuildFormView: View {
         .listRowBackground(Color.buildFormColor)
     }
     
-    // MARK: – Save
     private var saveSection: some View {
         Section(content: {
             Button {
@@ -190,8 +187,7 @@ struct BuildFormView: View {
         })
         .listRowBackground(Color.clear)
     }
-    
-    // MARK: – Field helpers
+
     private func field(_ title: LocalizedStringKey,
                        text: Binding<String>,
                        tag: Field, next: Field?) -> some View {
@@ -222,28 +218,10 @@ struct BuildFormView: View {
             .validationMessage(vm.formState.errors[field])
     }
     
-    // MARK: – Decoration helpers
     private func sectionHeader(_ text: LocalizedStringKey) -> some View {
         Text(text)
             .font(.headline)
             .foregroundColor(.white)
             .textCase(nil)
-    }
-}
-
-// ───────── Validation overlay helper
-private extension View {
-    @ViewBuilder
-    func validationMessage(_ msg: String?) -> some View {
-        if let msg {
-            VStack(alignment: .leading, spacing: 2) {
-                self
-                Text(msg)
-                    .font(.caption2)
-                    .foregroundColor(.red)
-            }
-        } else {
-            self
-        }
     }
 }

@@ -7,28 +7,25 @@
 
 import Foundation
 import Combine
+import SwiftUI
 
 @MainActor
 final class BuildListViewModel: ObservableObject {
     
-    // MARK: - Published state
     @Published var builds: [Build] = []
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
     
-    // MARK: - Deps
     private let repository: BuildRepository
     private(set) var session: SessionStore?
     
     private var cancellables = Set<AnyCancellable>()
     private var firestoreCancellable: AnyCancellable?
     
-    // MARK: - Init
     init(repository: BuildRepository) {
         self.repository = repository
     }
     
-    // Escucha el cambio de uid
     private func bindSession() {
         session?.$authState
             .map { state -> String? in        
@@ -49,7 +46,6 @@ final class BuildListViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    // Listener Firestore → publisher Combine
     private func subscribeToBuilds(for uid: String) {
         isLoading = true
         
@@ -65,9 +61,12 @@ final class BuildListViewModel: ObservableObject {
                 self?.builds = builds
             }
     }
+            
+    func delete(_ build: Build) {
+        guard let id = build.id,
+              let idx = builds.firstIndex(where: { $0.id == id }) else { return }
         
-    func delete(at offsets: IndexSet) {
-        offsets.forEach { index in
+        IndexSet(integer: idx).forEach { index in
             guard let id = builds[index].id else { return }
             repository.deleteBuild(id: id)
                 .sink(receiveCompletion: { _ in }, receiveValue: { })
@@ -78,5 +77,15 @@ final class BuildListViewModel: ObservableObject {
     func attachSession(_ session: SessionStore) {
         self.session = session
         bindSession()
+    }
+    
+    func binding(for build: Build) -> Binding<Build>? {
+        guard let idx = builds.firstIndex(where: { $0.id == build.id }) else {
+            return nil
+        }
+        return Binding(
+            get: { self.builds[idx] },
+            set: { self.builds[idx] = $0 }
+        )
     }
 }

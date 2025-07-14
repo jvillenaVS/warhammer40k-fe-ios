@@ -9,35 +9,29 @@ import SwiftUI
 
 struct LoginView: View {
     
-    // MARK: - ViewModel
     @StateObject private var vm: AuthViewModel
     @Environment(\.dismiss) private var dismiss
     
-    // MARK: - Focus
     @FocusState private var focusedField: Field?
     enum Field { case email, password }
     
-    // MARK: - Init
     init(authService: AuthService = FirebaseAuthService()) {
         _vm = StateObject(wrappedValue: AuthViewModel(authService: authService))
     }
     
-    // MARK: - Body
     var body: some View {
         NavigationStack {
             VStack(spacing: 24) {
                 
-                // --- Logo & title ------------------------------------------------
                 VStack(spacing: 8) {
                     Image(systemName: "shield.checkerboard")
                         .resizable()
                         .frame(width: 64, height: 64)
-                    Text("WH40K Builds")
+                    Text("WH40K Builder")
                         .font(.largeTitle).bold()
                 }
                 .padding(.bottom, 32)
                 
-                // --- Email & Password fields -----------------------------------
                 Group {
                     TextField("E‑mail", text: $vm.email)
                         .textContentType(.emailAddress)
@@ -56,7 +50,6 @@ struct LoginView: View {
                         .onSubmit { vm.login() }
                 }
                 
-                // --- Login button ----------------------------------------------
                 Button(action: vm.login) {
                     if vm.isLoading {
                         ProgressView()
@@ -68,7 +61,6 @@ struct LoginView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(vm.isLoading)
                 
-                // --- Google Sign‑In -------------------------------------------
                 GoogleSignInButton {
                     guard let rootVC =  UIApplication.topViewController() else {
                         print("❌ No root view controller found")
@@ -79,7 +71,6 @@ struct LoginView: View {
                 .frame(height: 48)
                 .padding(.top, 4)
                 
-                // --- Secondary links ------------------------------------------
                 HStack {
                     NavigationLink("Register") {
                         RegisterView(authService: FirebaseAuthService())
@@ -90,12 +81,9 @@ struct LoginView: View {
                 .font(.footnote)
             }
             .padding()
-            
-            // --- Hide keyboard on tap outside ---------------------------------
             .contentShape(Rectangle())
             .onTapGesture { hideKeyboard() }
-            
-            // --- Alert for errors & messages ----------------------------------
+           
             .alert("Message",
                    isPresented: Binding(
                        get: { vm.errorMessage != nil },
@@ -103,8 +91,7 @@ struct LoginView: View {
             ) { Button("OK", role: .cancel) { } } message: {
                 Text(vm.errorMessage ?? "")
             }
-            
-            // --- Dismiss when authenticated -----------------------------------
+
             .onChange(of: vm.isAuthenticated) { _, newValue in
                 if newValue { dismiss() }
             }
@@ -115,7 +102,6 @@ struct LoginView: View {
 }
 
 
-// MARK: - Preview
 #Preview {
     let auth = MockAuthService()
     LoginView(authService: auth)

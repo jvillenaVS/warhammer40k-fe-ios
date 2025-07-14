@@ -1,5 +1,5 @@
 //
-//  BannerVideoView.swift
+//  BannerVideo.swift
 //  WH40KBuilds
 //
 //  Created by Jose Villena on 7/7/25.
@@ -8,7 +8,7 @@
 import SwiftUI
 import _AVKit_SwiftUI
 
-struct BannerVideoView: View {
+struct BannerVideo: View {
     let player: AVPlayer
 
     var body: some View {

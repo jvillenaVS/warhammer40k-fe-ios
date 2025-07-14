@@ -11,7 +11,6 @@ import GoogleSignIn
 struct GoogleSignInButton: UIViewRepresentable {
     let action: () -> Void
     
-    // MARK: - Coordinator
     class Coordinator: NSObject {
         let action: () -> Void
         init(action: @escaping () -> Void) { self.action = action }
@@ -22,9 +21,7 @@ struct GoogleSignInButton: UIViewRepresentable {
         Coordinator(action: action)
     }
     
-    // MARK: - UIViewRepresentable
     func makeUIView(context: Context) -> UIView {
-        // Contenedor para poder añadir el gesto si lo necesitas
         let container = UIView()
         
         let googleButton = GIDSignInButton()
@@ -32,7 +29,6 @@ struct GoogleSignInButton: UIViewRepresentable {
         googleButton.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(googleButton)
         
-        // Autolayout: que el botón llene el contenedor
         NSLayoutConstraint.activate([
             googleButton.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             googleButton.trailingAnchor.constraint(equalTo: container.trailingAnchor),
@@ -40,7 +36,6 @@ struct GoogleSignInButton: UIViewRepresentable {
             googleButton.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
         
-        // ✅ Gestor de toque: UITapGestureRecognizer
         let tap = UITapGestureRecognizer(
             target: context.coordinator,
             action: #selector(Coordinator.tapped)
@@ -51,6 +46,6 @@ struct GoogleSignInButton: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: UIView, context: Context) {
-        // Nada que actualizar
+      
     }
 }

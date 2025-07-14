@@ -7,11 +7,11 @@
 
 import Combine
 import Foundation
+import SwiftUI
 
 @MainActor
 final class BuildFormViewModel: ObservableObject {
     
-    // MARK: – Form fields ---------------------------------------------------
     @Published var name           = ""
     @Published var subfaction     = ""
     @Published var commandPoints  = ""
@@ -24,7 +24,9 @@ final class BuildFormViewModel: ObservableObject {
     @Published var heavy  = ""
     @Published var flyers = ""
     
-    // MARK: – Codex data ----------------------------------------------------
+    @Published var editions: [EditionCodex] = []
+    @Published var selectedEdition: EditionCodex? = nil
+    
     @Published private(set) var factions:     [FactionCodex]     = []
     @Published          var selectedFaction: FactionCodex?       = nil
     
@@ -36,13 +38,11 @@ final class BuildFormViewModel: ObservableObject {
     
     @Published var detachmentType = ""
     
-    // MARK: – Validation ----------------------------------------------------
     @Published private(set) var formState   = BuildFormState(isValid: false)
     @Published private(set) var isSaving    = false
     @Published private(set) var saveSuccess = false
     @Published private(set) var errorMessage: String?
     
-    // MARK: – Deps
     private let repository:   BuildRepository
     private let codex:  CodexRepository
     private(set) var session: SessionStore?
@@ -50,7 +50,6 @@ final class BuildFormViewModel: ObservableObject {
     
     private var cancellables = Set<AnyCancellable>()
     
-    // MARK: – Init
     init(repository: BuildRepository,
          codex: CodexRepository) {
         
@@ -58,34 +57,54 @@ final class BuildFormViewModel: ObservableObject {
         self.codex = codex
         
         bindValidation()
-        loadFactions()
+        loadEditions()
+        bindFactionCascade()
         bindSubFactionCascade()
         bindDetachmentCascade()
     }
     
-    // MARK: – Carga de facciones
-    private func loadFactions() {
-        codex.factions(edition: "10e")
+    private func loadEditions() {
+        codex.editions()
             .replaceError(with: [])
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] fac in
-                self?.factions = fac
-                // ⤵︎ Auto‑selección de la primera facción
-                if self?.selectedFaction == nil,
-                   let first = fac.first {
-                    self?.selectedFaction = first
+            .sink { [weak self] editions in
+                self?.editions = editions
+                if let first = editions.first {
+                    self?.selectedEdition = first
                 }
             }
             .store(in: &cancellables)
     }
     
-    // MARK: – Cascada facción ➜ detachments
+    private func bindFactionCascade() {
+        $selectedEdition
+            .compactMap { $0?.id }
+            .removeDuplicates()
+            .flatMap { [codex] editionId in
+                codex.factions(edition: editionId)
+                    .replaceError(with: [])
+                    .eraseToAnyPublisher()
+            }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] factions in
+                self?.factions = factions
+                if let first = factions.first {
+                    self?.selectedFaction = first
+                } else {
+                    self?.selectedFaction = nil
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
     private func bindDetachmentCascade() {
-        
         $selectedFaction
             .compactMap { $0 }
-            .flatMap { [codex] (fac: FactionCodex) -> AnyPublisher<[DetachmentCodex], Never> in
-                codex.detachments(edition: "10e", faction: fac.docID)
+            .flatMap { [codex] fac -> AnyPublisher<[DetachmentCodex], Never> in
+                guard let editionId = fac.editionId else {
+                    return Just([DetachmentCodex]()).eraseToAnyPublisher()
+                }
+                return codex.detachments(edition: editionId, faction: fac.docID)
                     .replaceError(with: [])
                     .eraseToAnyPublisher()
             }
@@ -101,20 +120,22 @@ final class BuildFormViewModel: ObservableObject {
                 }
             }
             .store(in: &cancellables)
-        
+
         $selectedDetachment
             .map { $0?.name ?? "" }
             .assign(to: &$detachmentType)
     }
     
     private func bindSubFactionCascade() {
-        
         $selectedFaction
             .compactMap { $0 }
-            .flatMap { [codex] (fac: FactionCodex) -> AnyPublisher<[SubFactionCodex], Never> in
-                codex.subFactions(edition: "10e", faction: fac.docID)
-                     .replaceError(with: [])
-                     .eraseToAnyPublisher()
+            .flatMap { [codex] fac in
+                guard let editionId = fac.editionId else {
+                    return Just([SubFactionCodex]()).eraseToAnyPublisher()
+                }
+                return codex.subFactions(edition: editionId, faction: fac.docID)
+                    .replaceError(with: [])
+                    .eraseToAnyPublisher()
             }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] subs in
@@ -130,7 +151,6 @@ final class BuildFormViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    // MARK: – Validación reactiva (nombre, facción, puntos, slots…)
     private func bindValidation() {
         let basic = Publishers.CombineLatest3($name,
                                               $selectedFaction.map { $0?.name ?? "" },
@@ -166,7 +186,6 @@ final class BuildFormViewModel: ObservableObject {
             .assign(to: &$formState)
     }
     
-    // MARK: – Save
     func saveBuild() {
         guard formState.isValid,
               let faction = selectedFaction,
@@ -213,4 +232,11 @@ final class BuildFormViewModel: ObservableObject {
     }
     
     func clearError() { errorMessage = nil }
+    
+    var errorBinding: Binding<Bool> {
+        Binding(
+            get: { self.errorMessage != nil },
+            set: { _ in self.clearError() }
+        )
+    }
 }

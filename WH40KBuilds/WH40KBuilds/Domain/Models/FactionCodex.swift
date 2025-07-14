@@ -11,6 +11,7 @@ struct FactionCodex: Identifiable, Codable {
     @DocumentID var id: String?  
     var name: String
     var iconUrl: String?
+    var editionId: String?
     
     var docID: String {
         id ?? name.lowercased()
